@@ -205,12 +205,24 @@
       })
       .join("");
 
+    var yearsLeft = Math.max(0, new Date(window.GOAL.targetDate).getFullYear() - new Date().getFullYear());
+
     appEl.innerHTML =
+      '<div class="hero">' +
+      '<div class="hero-eyebrow">Vision · Cambodia</div>' +
+      '<h1 class="hero-title">10% of Cambodia following Christ by 2033</h1>' +
+      '<p class="hero-sub">Senior pastors in every province report their numbers here so the whole movement can see, together, how close we are to the goal — and where prayer and workers are needed most.</p>' +
+      '<div class="hero-figure">' +
+      (totals.percentChristian !== null
+        ? '<span class="big">' + fmtPct(totals.percentChristian) + '</span><span class="of">reported so far, of a 10% goal &middot; ' + yearsLeft + " years left</span>"
+        : '<span class="of">No provinces have reported yet &middot; ' + yearsLeft + " years left to reach the goal</span>") +
+      "</div>" +
+      "</div>" +
       '<div class="grid stats">' +
-      statCard("Reporting Provinces", rows.filter(function (r) { return r.latest; }).length + " / " + window.PROVINCES.length, "") +
-      statCard("Total Population Reported", fmtNum(totals.totalPop), "across reporting provinces") +
-      statCard("Christians Attending Sunday", fmtNum(totals.totalChristians), "self-reported by pastors") +
-      statCard("Villages With a Church", (totals.totalVillages ? totals.totalVillagesWithChurches + " / " + totals.totalVillages : "—"), fmtPct(totals.percentVillagesWithChurches, 1) + " of reporting villages") +
+      statCard("⛪", "Reporting Provinces", rows.filter(function (r) { return r.latest; }).length + " / " + window.PROVINCES.length, "") +
+      statCard("👥", "Total Population Reported", fmtNum(totals.totalPop), "across reporting provinces") +
+      statCard("🙏", "Christians Attending Sunday", fmtNum(totals.totalChristians), "self-reported by pastors") +
+      statCard("🏘️", "Villages With a Church", (totals.totalVillages ? totals.totalVillagesWithChurches + " / " + totals.totalVillages : "—"), fmtPct(totals.percentVillagesWithChurches, 1) + " of reporting villages") +
       "</div>" +
       '<div class="card goal-card">' +
       '<div class="goal-row"><h3>Progress toward 10% Christian by 2033</h3><span class="goal-pct">' +
@@ -248,9 +260,11 @@
     renderNationalChart();
   }
 
-  function statCard(label, value, foot) {
+  function statCard(icon, label, value, foot) {
     return (
-      '<div class="card stat-card"><div class="stat-label">' +
+      '<div class="card stat-card"><div class="stat-icon">' +
+      icon +
+      '</div><div class="stat-label">' +
       escapeHtml(label) +
       '</div><div class="stat-value">' +
       value +
@@ -260,9 +274,19 @@
     );
   }
 
+  function showChartFallback(canvas) {
+    if (!canvas) return;
+    var wrap = canvas.closest(".chart-wrap");
+    if (wrap) wrap.innerHTML = '<p class="muted" style="padding-top:40px;text-align:center">Chart could not load (no internet connection to the chart library). The numbers above are still accurate.</p>';
+  }
+
   function renderNationalChart() {
     var canvas = document.getElementById("national-chart");
-    if (!canvas || !window.Chart) return;
+    if (!canvas) return;
+    if (!window.Chart) {
+      showChartFallback(canvas);
+      return;
+    }
     if (charts.national) charts.national.destroy();
 
     var history = state.nationalHistory.slice();
@@ -371,10 +395,10 @@
     appEl.innerHTML =
       '<div class="back-link"><button class="link" id="back-to-dash">&larr; Back to dashboard</button></div>' +
       '<div class="grid stats">' +
-      statCard("Population", latest ? fmtNum(latest.population) : "—", latest ? "as of " + fmtDate(latest.date) : "No reports yet") +
-      statCard("Sunday Attendance", latest ? fmtNum(latest.sundayAttendance) : "—", fmtPct(pct)) +
-      statCard("Villages with a Church", latest ? latest.villagesWithChurches + " / " + latest.totalVillages : "—", fmtPct(churchPct, 0)) +
-      statCard("Reports Submitted", history.length, history.length ? "most recent: " + fmtDate(latest.date) : "") +
+      statCard("👥", "Population", latest ? fmtNum(latest.population) : "—", latest ? "as of " + fmtDate(latest.date) : "No reports yet") +
+      statCard("🙏", "Sunday Attendance", latest ? fmtNum(latest.sundayAttendance) : "—", fmtPct(pct)) +
+      statCard("🏘️", "Villages with a Church", latest ? latest.villagesWithChurches + " / " + latest.totalVillages : "—", fmtPct(churchPct, 0)) +
+      statCard("📋", "Reports Submitted", history.length, history.length ? "most recent: " + fmtDate(latest.date) : "") +
       "</div>" +
       '<div class="two-panel" style="margin-top:20px">' +
       '<div class="card">' +
@@ -440,7 +464,11 @@
 
   function renderProvinceChart(history) {
     var canvas = document.getElementById("province-chart");
-    if (!canvas || !window.Chart) return;
+    if (!canvas) return;
+    if (!window.Chart) {
+      showChartFallback(canvas);
+      return;
+    }
     if (charts.province) charts.province.destroy();
 
     var ordered = history.slice().reverse();
@@ -478,6 +506,25 @@
 
   // ---------- Entry form ----------
 
+  var REMEMBER_NAME_KEY = "cambodia-tracker:enteredBy";
+  var REMEMBER_PASSCODE_KEY = "cambodia-tracker:passcode";
+
+  function remembered(key) {
+    try {
+      return localStorage.getItem(key) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function remember(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   function renderEntry() {
     var preselect = state.selectedProvinceId || "";
     var options = window.PROVINCES.map(function (p) {
@@ -485,12 +532,16 @@
     }).join("");
 
     var today = new Date().toISOString().slice(0, 10);
+    var rememberedName = remembered(REMEMBER_NAME_KEY);
+    var rememberedPasscode = remembered(REMEMBER_PASSCODE_KEY);
 
     appEl.innerHTML =
       '<div class="card">' +
       '<div class="section-title">Enter Province Report</div>' +
-      '<div class="section-sub">To be completed by the senior pastor (or designated leader) for a province. Submit a new report any time your numbers change — each submission is saved to that province\'s history.</div>' +
+      '<div class="section-sub">To be completed by the senior pastor (or designated leader) for a province. Submit a new report any time your numbers change — it only takes a minute, and each submission is saved to that province\'s history.</div>' +
       '<form class="entry-form" id="entry-form" autocomplete="off">' +
+      '<div class="form-section">' +
+      '<div class="form-section-head"><span class="num-badge">1</span><h4>Where and when</h4></div>' +
       '<div class="form-row"><label for="f-province">Province</label>' +
       '<select id="f-province" required><option value="" disabled ' +
       (preselect ? "" : "selected") +
@@ -501,30 +552,40 @@
       '<div class="form-row"><label for="f-date">Report date</label><input type="date" id="f-date" value="' +
       today +
       '" required></div>' +
-      '<div class="form-row"><label for="f-name">Entered by <span class="hint">(pastor / leader name)</span></label><input type="text" id="f-name" placeholder="e.g. Pastor Sok Dara"></div>' +
+      '<div class="form-row"><label for="f-name">Entered by <span class="hint">(pastor / leader name)</span></label><input type="text" id="f-name" placeholder="e.g. Pastor Sok Dara" value="' +
+      escapeHtml(rememberedName) +
+      '"></div>' +
       "</div>" +
-      '<div class="two-col">' +
-      '<div class="form-row"><label for="f-population">Total population of province</label><input type="number" id="f-population" min="0" step="1" required placeholder="e.g. 850000"></div>' +
-      '<div class="form-row"><label for="f-villages">Total villages in province</label><input type="number" id="f-villages" min="0" step="1" required placeholder="e.g. 450"></div>' +
       "</div>" +
-      '<div class="two-col">' +
-      '<div class="form-row"><label for="f-churches-villages">Villages with at least one church</label><input type="number" id="f-churches-villages" min="0" step="1" required placeholder="e.g. 120"></div>' +
-      '<div class="form-row"><label for="f-attendance">Christians attending church this Sunday</label><input type="number" id="f-attendance" min="0" step="1" required placeholder="e.g. 18000"></div>' +
+      '<div class="form-section">' +
+      '<div class="form-section-head"><span class="num-badge">2</span><h4>Population &amp; villages</h4></div>' +
+      '<div class="form-row"><label for="f-population">Total population of province</label>' +
+      '<input type="number" inputmode="numeric" id="f-population" min="0" step="1" required placeholder="e.g. 850000">' +
+      '<div class="ref-note" id="population-ref-note"></div>' +
+      "</div>" +
+      '<div class="form-row"><label for="f-villages">Total villages in province</label><input type="number" inputmode="numeric" id="f-villages" min="0" step="1" required placeholder="e.g. 450"></div>' +
+      '<div class="form-row"><label for="f-churches-villages">Villages with at least one church</label><input type="number" inputmode="numeric" id="f-churches-villages" min="0" step="1" required placeholder="e.g. 120"><div class="field-feedback" id="church-feedback"></div></div>' +
+      "</div>" +
+      '<div class="form-section">' +
+      '<div class="form-section-head"><span class="num-badge">3</span><h4>This Sunday</h4></div>' +
+      '<div class="form-row"><label for="f-attendance">Christians attending church this Sunday</label><input type="number" inputmode="numeric" id="f-attendance" min="0" step="1" required placeholder="e.g. 18000"><div class="field-feedback" id="attendance-feedback"></div></div>' +
       "</div>" +
       '<button type="button" class="details-toggle" id="toggle-extra">+ Add optional details (churches, baptisms, new believers, leaders, notes)</button>' +
       '<div class="extra-fields" id="extra-fields">' +
       '<div class="two-col">' +
-      '<div class="form-row"><label for="f-num-churches">Total number of churches <span class="hint">(may be more than villages with a church)</span></label><input type="number" id="f-num-churches" min="0" step="1"></div>' +
-      '<div class="form-row"><label for="f-leaders">Trained / ordained local leaders</label><input type="number" id="f-leaders" min="0" step="1"></div>' +
+      '<div class="form-row"><label for="f-num-churches">Total number of churches <span class="hint">(may be more than villages with a church)</span></label><input type="number" inputmode="numeric" id="f-num-churches" min="0" step="1"></div>' +
+      '<div class="form-row"><label for="f-leaders">Trained / ordained local leaders</label><input type="number" inputmode="numeric" id="f-leaders" min="0" step="1"></div>' +
       "</div>" +
       '<div class="two-col">' +
-      '<div class="form-row"><label for="f-baptisms">Baptisms in the past year</label><input type="number" id="f-baptisms" min="0" step="1"></div>' +
-      '<div class="form-row"><label for="f-new-believers">New believers in the past year</label><input type="number" id="f-new-believers" min="0" step="1"></div>' +
+      '<div class="form-row"><label for="f-baptisms">Baptisms in the past year</label><input type="number" inputmode="numeric" id="f-baptisms" min="0" step="1"></div>' +
+      '<div class="form-row"><label for="f-new-believers">New believers in the past year</label><input type="number" inputmode="numeric" id="f-new-believers" min="0" step="1"></div>' +
       "</div>" +
-      '<div class="form-row"><label for="f-small-groups">Small groups / house churches / cell groups</label><input type="number" id="f-small-groups" min="0" step="1"></div>' +
+      '<div class="form-row"><label for="f-small-groups">Small groups / house churches / cell groups</label><input type="number" inputmode="numeric" id="f-small-groups" min="0" step="1"></div>' +
       '<div class="form-row"><label for="f-notes">Notes or prayer requests</label><textarea id="f-notes" rows="3" placeholder="Anything the national team should know — needs, breakthroughs, prayer requests…"></textarea></div>' +
       "</div>" +
-      '<div class="form-row"><label for="f-passcode">Team passcode</label><input type="password" id="f-passcode" required placeholder="Provided by your regional coordinator"></div>' +
+      '<div class="form-row"><label for="f-passcode">Team passcode</label><input type="password" id="f-passcode" required placeholder="Provided by your regional coordinator" value="' +
+      escapeHtml(rememberedPasscode) +
+      '"><span class="hint">Saved on this device so you won\'t need to retype it next time.</span></div>' +
       '<div id="entry-alert"></div>' +
       '<button type="submit" class="primary" id="submit-btn">Submit report</button>' +
       "</form>" +
@@ -535,6 +596,71 @@
       var open = el.classList.toggle("open");
       this.textContent = (open ? "− Hide" : "+ Add") + " optional details (churches, baptisms, new believers, leaders, notes)";
     });
+
+    var provinceSelect = document.getElementById("f-province");
+    var populationInput = document.getElementById("f-population");
+    var villagesInput = document.getElementById("f-villages");
+    var churchVillagesInput = document.getElementById("f-churches-villages");
+    var attendanceInput = document.getElementById("f-attendance");
+
+    function applyReferencePopulation() {
+      var meta = findProvinceMeta(provinceSelect.value);
+      var note = document.getElementById("population-ref-note");
+      if (!meta) {
+        note.innerHTML = "";
+        return;
+      }
+      if (!populationInput.value) {
+        populationInput.value = meta.referencePopulation;
+        updateAttendanceFeedback();
+      }
+      note.innerHTML =
+        "Reference: " +
+        fmtNum(meta.referencePopulation) +
+        " (" +
+        escapeHtml(window.POPULATION_SOURCE.label) +
+        ') — <button type="button" class="link" id="use-ref-pop">use this number</button> if you don\'t have a more accurate local count.';
+      var btn = document.getElementById("use-ref-pop");
+      if (btn) {
+        btn.addEventListener("click", function () {
+          populationInput.value = meta.referencePopulation;
+          updateAttendanceFeedback();
+        });
+      }
+    }
+
+    function updateAttendanceFeedback() {
+      var pop = Number(populationInput.value);
+      var att = Number(attendanceInput.value);
+      var el = document.getElementById("attendance-feedback");
+      if (!pop || !att) {
+        el.textContent = "";
+        return;
+      }
+      var pct = (att / pop) * 100;
+      el.textContent = "= " + fmtPct(pct) + " of the province's population";
+      el.classList.toggle("warn", att > pop);
+    }
+
+    function updateChurchFeedback() {
+      var villages = Number(villagesInput.value);
+      var withChurch = Number(churchVillagesInput.value);
+      var el = document.getElementById("church-feedback");
+      if (!villages || !withChurch) {
+        el.textContent = "";
+        return;
+      }
+      el.textContent = "= " + fmtPct((withChurch / villages) * 100, 0) + " of villages have a church";
+      el.classList.toggle("warn", withChurch > villages);
+    }
+
+    provinceSelect.addEventListener("change", applyReferencePopulation);
+    populationInput.addEventListener("input", updateAttendanceFeedback);
+    attendanceInput.addEventListener("input", updateAttendanceFeedback);
+    villagesInput.addEventListener("input", updateChurchFeedback);
+    churchVillagesInput.addEventListener("input", updateChurchFeedback);
+
+    if (preselect) applyReferencePopulation();
 
     document.getElementById("entry-form").addEventListener("submit", onSubmitEntry);
   }
@@ -598,6 +724,8 @@
       if (!res.ok) throw new Error(body.error || "Something went wrong.");
 
       alertEl.innerHTML = '<div class="alert success">Report saved for ' + escapeHtml(meta.name) + ". Thank you!</div>";
+      remember(REMEMBER_NAME_KEY, payload.enteredBy);
+      remember(REMEMBER_PASSCODE_KEY, payload.passcode);
       await loadData();
       setTimeout(function () {
         setView("province", provinceId);
