@@ -59,31 +59,61 @@ across Joshua Project, the World Religion Database, EFC/OMF/mission
 estimates, Cambodia's 2008/2019 census religion-by-province tables, and
 ethnic-minority concentration data.
 
-Two honest findings drove the design:
+Two facts drive the model:
 
 1. **Cambodia's own government census (0.3% Christian, CIPS 2024) and
    independent research bodies (1.5–3.3%) disagree by roughly 10x** — a gap
    researchers attribute to under-reporting, since Khmer identity is
-   culturally fused with Buddhism. The app shows both figures side by side
-   rather than picking one and hiding the other.
-2. **No reliable, publicly-available data breaks Christian population down
-   by province** — every research agent that looked for one, including
-   attempts to reach Cambodia's Ministry of Cults and Religions and the
-   `cambodiachurches.org` directory, either found nothing or caught the
-   search tooling fabricating numbers (literally returning identical figures
-   for two different provinces). The one exception: **Mondulkiri and
-   Ratanakiri** are corroborated as meaningfully above average by two
-   independent methods (the government census itself, and separate research
-   on Christian conversion among indigenous highland peoples), so those two
-   get a distinct number. Every other province uses the flat national
-   estimate — not because nothing is happening there, but because nothing
-   citable was found.
+   culturally fused with Buddhism and declaring "Christian" on a government
+   form carries social cost. The app shows both figures side by side rather
+   than picking one and hiding the other.
+2. **The census undercounts, but it is the same instrument applied in every
+   province** — so while its absolute level is too low, its *relative*
+   pattern across provinces is still informative.
 
-If you can get real per-province numbers later (`cambodiachurches.org` looked
-the most promising — it's a province/district/commune-browsable directory of
-evangelical churches, but was unreachable from this build environment), just
-edit that file; every seeded value is replaced automatically the moment a
-pastor submits a real report for that province.
+So each province's estimate is its census figure plus a uniform offset:
+
+```
+estimate% = censusPrior% + 1.671 points
+```
+
+where the offset represents the ~289,700 believers the census misses,
+distributed proportional to population. This reproduces the 2.0% national
+figure to within 0.001 points, and yields a range of **1.77% (Kampong Cham,
+Kampong Speu, Pursat, Svay Rieng, Tboung Khmum) to 5.67% (Mondulkiri)**.
+
+The offset is **additive rather than multiplicative** because the undercount
+mechanism is per-capita social pressure, not something proportional to
+existing Christian presence — scaling multiplicatively (6.7x) would put
+Mondulkiri at ~27%, which is plainly wrong.
+
+**Limitations, stated plainly:**
+
+- Distributing the uncounted by raw population is a neutral assumption, not a
+  measured one. The undercount is probably heavier in Khmer-majority lowland
+  provinces and in cities, but no data exists to weight it.
+- This compresses the lowland provinces into a narrow 1.77–2.07% band. That
+  is the honest output — the census puts them all within 0.1–0.4% of each
+  other, and manufacturing more spread than the source contains would be
+  fabrication.
+- Every entry carries a `tier` field recording exactly how solid its prior is:
+  `census-2019` and `census-clean` (best), `census-ambiguous` (year attribution
+  uncertain), `census-residual` (derived from published Buddhist/Muslim
+  shares), `inferred` (Phnom Penh and Stung Treng — no census reading, inferred
+  from institutional/ethnic evidence, the softest numbers here), and `default`
+  (Kep, Koh Kong, Oddar Meanchey, Pailin — no province signal of any kind).
+
+**Mondulkiri (5.67%) and Ratanakiri (3.77%) are the most solid** — both the
+government census and independent research on conversion among indigenous
+highland peoples (Bunong/Phnong, Jarai, Tampuan, Kreung, Brao) independently
+agree they are far above average.
+
+If you can get real per-province numbers later, just edit that file — every
+seeded value is replaced automatically the moment a pastor submits a real
+report. `cambodiachurches.org` is the most promising lead: a
+province/district/commune-browsable directory of evangelical churches derived
+from Mission Kampuchea 2021 data, using the same NCDD gazetteer this app
+already uses. It was unreachable from the build environment.
 
 ## Language
 
@@ -103,6 +133,14 @@ Submitting a report, or marking a village in the registry, requires a shared
 team passcode, set via the `ENTRY_PASSCODE` environment variable in the
 Netlify site settings (falls back to `ywam2033` if unset — change this before
 sharing widely). Viewing the dashboard is open to anyone with the link.
+
+## Design
+
+Dark-first interface built for phones on patchy connections: high contrast,
+large tap targets, and no heavy blur stacks or animation that would stutter on
+older Android hardware. Type is Space Grotesk for text, JetBrains Mono for all
+figures (so digits align in columns), and Noto Sans Khmer for Khmer script.
+Motion respects `prefers-reduced-motion`.
 
 ## Tech
 

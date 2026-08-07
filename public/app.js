@@ -265,7 +265,7 @@
           ? latest.population ? (latest.sundayAttendance / latest.population) * 100 : null
           : est ? est.percentChristian : null;
         var churchPct = confirmed && latest.totalVillages ? (latest.villagesWithChurches / latest.totalVillages) * 100 : null;
-        var estClass = confirmed ? "" : " class=\"est-value\"";
+        var numClass = confirmed ? ' class="numeric"' : ' class="numeric est-value"';
         return (
           '<tr data-province="' +
           r.meta.id +
@@ -273,16 +273,16 @@
           "<td>" +
           escapeHtml(provinceName(r.meta)) +
           "</td>" +
-          "<td" + estClass + ' style="text-align:right">' +
+          "<td" + numClass + ">" +
           fmtNum(effPop) +
           "</td>" +
-          "<td" + estClass + ' style="text-align:right">' +
+          "<td" + numClass + ">" +
           (effAttendance !== null ? fmtNum(effAttendance) : "—") +
           "</td>" +
-          "<td" + estClass + ' style="text-align:right">' +
+          "<td" + numClass + ">" +
           fmtPct(effPct) +
           "</td>" +
-          '<td class="num">' +
+          '<td class="numeric">' +
           (confirmed ? latest.villagesWithChurches + " / " + latest.totalVillages + " (" + fmtPct(churchPct, 0) + ")" : "—") +
           "</td>" +
           "<td>" +
@@ -326,10 +326,17 @@
       '<div class="goal-row"><h3>' + escapeHtml(t("goal.title")) + '</h3><span class="goal-pct">' +
       (totals.percentChristian !== null ? fmtPct(totals.percentChristian) : escapeHtml(t("goal.noData"))) +
       "</span></div>" +
-      '<div class="progress-track"><div class="progress-fill" style="width:' +
-      progressToGoal +
-      '%"></div><div class="progress-target-marker" style="left:100%"></div></div>' +
-      '<div class="progress-labels"><span>' + escapeHtml(t("goal.labelStart")) + '</span><span>' + escapeHtml(t("goal.labelTarget")) + '</span></div>' +
+      '<div class="progress-track">' +
+      '<div class="progress-ticks">' +
+      [20, 40, 60, 80].map(function (p) { return '<span style="left:' + p + '%"></span>'; }).join("") +
+      "</div>" +
+      '<div class="progress-fill" style="width:' + progressToGoal + '%"></div>' +
+      '<div class="progress-target-marker" style="left:100%"></div>' +
+      "</div>" +
+      '<div class="progress-labels">' +
+      [0, 2, 4, 6, 8, 10].map(function (p) { return "<span>" + p + "%</span>"; }).join("") +
+      "</div>" +
+      '<div class="progress-caption">' + escapeHtml(t("goal.labelTarget")) + "</div>" +
       (totals.percentChristian === null
         ? '<p class="stat-foot" style="margin-top:12px">' + escapeHtml(t("goal.emptyNote")) + "</p>"
         : "") +
@@ -381,6 +388,50 @@
     );
   }
 
+  // Chart styling for the dark theme. Chart.js defaults assume a light background,
+  // so axes/grid/legend all need explicit colors or they render nearly invisible.
+  var CHART_THEME = {
+    mint: "#34E5B0",
+    mintFill: "rgba(52, 229, 176, 0.13)",
+    amber: "#FBBF24",
+    bg: "#080B14",
+    ink: "#97A6BF",
+    axis: {
+      grid: { color: "rgba(255,255,255,0.06)", drawBorder: false },
+      border: { display: false },
+      ticks: { color: "#64748B", font: { size: 11, family: "JetBrains Mono, monospace" } },
+    },
+  };
+
+  function baseChartOptions() {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: CHART_THEME.ink,
+            usePointStyle: true,
+            pointStyle: "circle",
+            boxWidth: 8,
+            font: { size: 12, family: "Space Grotesk, sans-serif" },
+          },
+        },
+        tooltip: {
+          backgroundColor: "#0E1421",
+          borderColor: "rgba(255,255,255,0.14)",
+          borderWidth: 1,
+          titleColor: "#F2F6FC",
+          bodyColor: "#97A6BF",
+          padding: 11,
+          cornerRadius: 8,
+          titleFont: { family: "Space Grotesk, sans-serif" },
+          bodyFont: { family: "JetBrains Mono, monospace", size: 11 },
+        },
+      },
+    };
+  }
+
   function showChartFallback(canvas) {
     if (!canvas) return;
     var wrap = canvas.closest(".chart-wrap");
@@ -428,36 +479,40 @@
           {
             label: t("chart.actual"),
             data: actual,
-            borderColor: "#1f7a6c",
-            backgroundColor: "rgba(31,122,108,0.12)",
+            borderColor: CHART_THEME.mint,
+            backgroundColor: CHART_THEME.mintFill,
+            borderWidth: 2.5,
             fill: true,
-            tension: 0.25,
+            tension: 0.3,
             spanGaps: true,
             pointRadius: 3,
+            pointBackgroundColor: CHART_THEME.mint,
+            pointBorderColor: CHART_THEME.bg,
+            pointBorderWidth: 2,
           },
           {
             label: t("chart.goal"),
             data: goalLine,
-            borderColor: "#c99a3b",
-            borderDash: [6, 4],
+            borderColor: CHART_THEME.amber,
+            borderWidth: 2,
+            borderDash: [6, 5],
             spanGaps: true,
             pointRadius: 0,
             fill: false,
           },
         ],
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
+      options: Object.assign(baseChartOptions(), {
         interaction: { mode: "index", intersect: false },
         scales: {
-          y: {
-            beginAtZero: true,
-            suggestedMax: 11,
-            ticks: { callback: function (v) { return v + "%"; } },
-          },
+          x: CHART_THEME.axis,
+          y: Object.assign({ beginAtZero: true, suggestedMax: 11 }, CHART_THEME.axis, {
+            ticks: Object.assign({}, CHART_THEME.axis.ticks, {
+              callback: function (v) { return v + "%"; },
+            }),
+          }),
         },
-      },
+      }),
     });
   }
 
@@ -598,20 +653,29 @@
           {
             label: t("detail.chartTitle"),
             data: data,
-            borderColor: "#1f7a6c",
-            backgroundColor: "rgba(31,122,108,0.12)",
+            borderColor: CHART_THEME.mint,
+            backgroundColor: CHART_THEME.mintFill,
+            borderWidth: 2.5,
             fill: true,
-            tension: 0.25,
+            tension: 0.3,
             pointRadius: 3,
+            pointBackgroundColor: CHART_THEME.mint,
+            pointBorderColor: CHART_THEME.bg,
+            pointBorderWidth: 2,
             spanGaps: true,
           },
         ],
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: { y: { beginAtZero: true, ticks: { callback: function (v) { return v + "%"; } } } },
-      },
+      options: Object.assign(baseChartOptions(), {
+        scales: {
+          x: CHART_THEME.axis,
+          y: Object.assign({ beginAtZero: true }, CHART_THEME.axis, {
+            ticks: Object.assign({}, CHART_THEME.axis.ticks, {
+              callback: function (v) { return v + "%"; },
+            }),
+          }),
+        },
+      }),
     });
   }
 
