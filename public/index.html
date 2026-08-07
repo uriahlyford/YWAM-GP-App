@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Cambodia 10x2033 — Church Growth Tracker</title>
-  <meta name="description" content="Tracking progress toward 10% Christian in Cambodia by 2033, province by province." />
+  <title>Vision 2033 — Cambodia Church Growth Tracker</title>
+  <meta name="description" content="Tracking progress toward 10% of Cambodia following Christ by 2033, province by province and village by village." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛪</text></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Lora:ital@0;1&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Lora:ital@0;1&family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
@@ -18,14 +18,19 @@
       <div class="brand">
         <span class="brand-mark">⛪</span>
         <div>
-          <div class="brand-title">Cambodia 10x2033</div>
-          <div class="brand-sub">Church growth tracker</div>
+          <div class="brand-title" id="brand-title">Vision 2033</div>
+          <div class="brand-sub" id="brand-sub">Church growth tracker</div>
         </div>
       </div>
-      <nav class="tabs" id="tabs">
-        <button class="tab active" data-view="dashboard">Dashboard</button>
-        <button class="tab" data-view="entry">Enter Province Data</button>
-      </nav>
+      <div class="topbar-right">
+        <nav class="tabs" id="tabs">
+          <button class="tab active" data-view="dashboard" id="tab-dashboard">Dashboard</button>
+          <button class="tab" data-view="entry" id="tab-entry">Enter Province Data</button>
+        </nav>
+        <button class="lang-toggle" id="lang-toggle" type="button" aria-label="Toggle language">
+          <span data-lang-opt="en">EN</span><span class="sep">/</span><span data-lang-opt="km">ខ្មែរ</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -35,10 +40,12 @@
   </main>
 
   <footer class="footer">
-    <p>Built for provincial pastors to report on church planting progress toward the goal of 10% of Cambodia's population following Christ by 2033.</p>
+    <p id="footer-text">Built for provincial pastors to report on church planting progress toward the goal of 10% of Cambodia's population following Christ by 2033.</p>
+    <p class="footer-credit">Population: 2024 Cambodia Inter-Censal Population Survey (NIS). Villages: official NCDD commune/village gazetteer.</p>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="/i18n.js"></script>
   <script src="/provinces.js"></script>
   <script src="/app.js"></script>
 </body>
