@@ -48,6 +48,43 @@ feeds straight back into the main report.
 These are starting references, not the final word — provincial leaders
 should confirm and update them with their own local knowledge.
 
+### Starting estimates for Christian population
+
+Before any pastor has reported, the dashboard and entry form show a
+**research-based estimate** for each province's Sunday attendance / %
+Christian, clearly badged "Estimated" (vs. "Confirmed" once a real report
+comes in) and italicized in the table. These come from
+`public/data/seed-estimates.js`, compiled from a multi-agent research pass
+across Joshua Project, the World Religion Database, EFC/OMF/mission
+estimates, Cambodia's 2008/2019 census religion-by-province tables, and
+ethnic-minority concentration data.
+
+Two honest findings drove the design:
+
+1. **Cambodia's own government census (0.3% Christian, CIPS 2024) and
+   independent research bodies (1.5–3.3%) disagree by roughly 10x** — a gap
+   researchers attribute to under-reporting, since Khmer identity is
+   culturally fused with Buddhism. The app shows both figures side by side
+   rather than picking one and hiding the other.
+2. **No reliable, publicly-available data breaks Christian population down
+   by province** — every research agent that looked for one, including
+   attempts to reach Cambodia's Ministry of Cults and Religions and the
+   `cambodiachurches.org` directory, either found nothing or caught the
+   search tooling fabricating numbers (literally returning identical figures
+   for two different provinces). The one exception: **Mondulkiri and
+   Ratanakiri** are corroborated as meaningfully above average by two
+   independent methods (the government census itself, and separate research
+   on Christian conversion among indigenous highland peoples), so those two
+   get a distinct number. Every other province uses the flat national
+   estimate — not because nothing is happening there, but because nothing
+   citable was found.
+
+If you can get real per-province numbers later (`cambodiachurches.org` looked
+the most promising — it's a province/district/commune-browsable directory of
+evangelical churches, but was unreachable from this build environment), just
+edit that file; every seeded value is replaced automatically the moment a
+pastor submits a real report for that province.
+
 ## Language
 
 The app ships in English and Khmer (toggle in the top bar, remembered per

@@ -337,7 +337,8 @@
         ? '<div class="research-estimate-note"><strong>' +
           fmtPct(window.NATIONAL_ESTIMATE.percentChristian) +
           "</strong> " + escapeHtml(t("goal.researchEstimate")) + " " +
-          escapeHtml(window.NATIONAL_ESTIMATE.source) + " (" + window.NATIONAL_ESTIMATE.asOfYear + ")" +
+          escapeHtml(window.NATIONAL_ESTIMATE.source) + " (" + window.NATIONAL_ESTIMATE.asOfYear + "). " +
+          escapeHtml(t("goal.governmentFigure")) + " " + fmtPct(window.NATIONAL_ESTIMATE.governmentPercent) + "." +
           "</div>"
         : "") +
       "</div>" +

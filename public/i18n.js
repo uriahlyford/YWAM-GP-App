@@ -44,6 +44,10 @@
       en: "is the best available independent research estimate of Cambodia's current Christian population, nationally — not yet confirmed province-by-province. Source:",
       km: "គឺជាការប៉ាន់ស្មានស្រាវជ្រាវឯករាជ្យដ៏ល្អបំផុតដែលមាន សម្រាប់ចំនួនប្រជាជនគ្រិស្តបរិស័ទបច្ចុប្បន្នរបស់កម្ពុជា ថ្នាក់ជាតិ — មិនទាន់បានបញ្ជាក់ជាក់លាក់តាមខេត្តនៅឡើយទេ។ ប្រភព៖",
     },
+    "goal.governmentFigure": {
+      en: "For comparison, Cambodia's own government census reports:",
+      km: "សម្រាប់ការប្រៀបធៀប ជំរឿនរបស់រដ្ឋាភិបាលកម្ពុជាខ្លួនឯងរាយការណ៍ថា៖",
+    },
     "table.legend.estimated": {
       en: "Estimated = a research-based figure (see hover for source), not yet confirmed by that province's pastor. Confirm it by submitting a report.",
       km: "ប៉ាន់ស្មាន = លេខផ្អែកលើការស្រាវជ្រាវ (សូមមើលព័ត៌មានលម្អិតដោយចុចលើសញ្ញា) មិនទាន់បញ្ជាក់ដោយគ្រូគង្វាលខេត្តនោះទេ។ សូមបញ្ជាក់ដោយដាក់ស្នើរបាយការណ៍។",
