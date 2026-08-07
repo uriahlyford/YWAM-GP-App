@@ -102,6 +102,21 @@
     return window.I18N.getLang() === "km" && meta.nameKhmer ? meta.nameKhmer : meta.name;
   }
 
+  function estimateFor(provinceId) {
+    var seeds = window.SEED_ESTIMATES;
+    if (!seeds || !seeds[provinceId]) return null;
+    var meta = findProvinceMeta(provinceId);
+    var seed = seeds[provinceId];
+    var population = meta.referencePopulation;
+    return {
+      percentChristian: seed.percentChristian,
+      estimatedAttendance: Math.round((population * seed.percentChristian) / 100),
+      confidence: seed.confidence,
+      note: seed.note,
+      source: seed.source,
+    };
+  }
+
   function getProvinceRecord(id) {
     return state.provinces.find(function (p) {
       return p.id === id;
@@ -242,8 +257,15 @@
     var rowsHtml = rows
       .map(function (r) {
         var latest = r.latest;
-        var pct = latest && latest.population ? (latest.sundayAttendance / latest.population) * 100 : null;
-        var churchPct = latest && latest.totalVillages ? (latest.villagesWithChurches / latest.totalVillages) * 100 : null;
+        var est = estimateFor(r.meta.id);
+        var confirmed = !!latest;
+        var effPop = confirmed ? latest.population : r.meta.referencePopulation;
+        var effAttendance = confirmed ? latest.sundayAttendance : est ? est.estimatedAttendance : null;
+        var effPct = confirmed
+          ? latest.population ? (latest.sundayAttendance / latest.population) * 100 : null
+          : est ? est.percentChristian : null;
+        var churchPct = confirmed && latest.totalVillages ? (latest.villagesWithChurches / latest.totalVillages) * 100 : null;
+        var estClass = confirmed ? "" : " class=\"est-value\"";
         return (
           '<tr data-province="' +
           r.meta.id +
@@ -251,26 +273,26 @@
           "<td>" +
           escapeHtml(provinceName(r.meta)) +
           "</td>" +
-          '<td class="num">' +
-          (latest ? fmtNum(latest.population) : "—") +
+          "<td" + estClass + ' style="text-align:right">' +
+          fmtNum(effPop) +
+          "</td>" +
+          "<td" + estClass + ' style="text-align:right">' +
+          (effAttendance !== null ? fmtNum(effAttendance) : "—") +
+          "</td>" +
+          "<td" + estClass + ' style="text-align:right">' +
+          fmtPct(effPct) +
           "</td>" +
           '<td class="num">' +
-          (latest ? fmtNum(latest.sundayAttendance) : "—") +
+          (confirmed ? latest.villagesWithChurches + " / " + latest.totalVillages + " (" + fmtPct(churchPct, 0) + ")" : "—") +
           "</td>" +
-          '<td class="num">' +
-          fmtPct(pct) +
-          "</td>" +
-          '<td class="num">' +
-          (latest ? latest.villagesWithChurches + " / " + latest.totalVillages : "—") +
-          " (" +
-          fmtPct(churchPct, 0) +
-          ")</td>" +
           "<td>" +
           (latest ? fmtDate(latest.date) : "—") +
           "</td>" +
           "<td>" +
-          (latest
+          (confirmed
             ? '<span class="badge reporting">' + escapeHtml(t("badge.reporting")) + "</span>"
+            : est
+            ? '<span class="badge estimated" title="' + escapeHtml(est.note || "") + '">' + escapeHtml(t("badge.estimated")) + "</span>"
             : '<span class="badge none">' + escapeHtml(t("badge.noData")) + "</span>") +
           "</td>" +
           "</tr>"
@@ -311,6 +333,13 @@
       (totals.percentChristian === null
         ? '<p class="stat-foot" style="margin-top:12px">' + escapeHtml(t("goal.emptyNote")) + "</p>"
         : "") +
+      (window.NATIONAL_ESTIMATE
+        ? '<div class="research-estimate-note"><strong>' +
+          fmtPct(window.NATIONAL_ESTIMATE.percentChristian) +
+          "</strong> " + escapeHtml(t("goal.researchEstimate")) + " " +
+          escapeHtml(window.NATIONAL_ESTIMATE.source) + " (" + window.NATIONAL_ESTIMATE.asOfYear + ")" +
+          "</div>"
+        : "") +
       "</div>" +
       '<div class="card" style="margin-top:20px">' +
       '<div class="section-title">' + escapeHtml(t("chart.title")) + '</div>' +
@@ -325,6 +354,7 @@
       "</tr></thead><tbody>" +
       rowsHtml +
       "</tbody></table></div>" +
+      '<p class="muted" style="margin-top:12px;font-size:0.78rem">' + escapeHtml(t("table.legend.estimated")) + "</p>" +
       "</div>";
 
     Array.prototype.forEach.call(appEl.querySelectorAll("tr[data-province]"), function (tr) {
@@ -651,7 +681,7 @@
       "</div>" +
       '<div class="form-section">' +
       '<div class="form-section-head"><span class="num-badge">3</span><h4>' + escapeHtml(t("entry.section3")) + '</h4></div>' +
-      '<div class="form-row"><label for="f-attendance">' + escapeHtml(t("entry.attendance")) + '</label><input type="number" inputmode="numeric" id="f-attendance" min="0" step="1" required placeholder="e.g. 18000"><div class="field-feedback" id="attendance-feedback"></div></div>' +
+      '<div class="form-row"><label for="f-attendance">' + escapeHtml(t("entry.attendance")) + '</label><input type="number" inputmode="numeric" id="f-attendance" min="0" step="1" required placeholder="e.g. 18000"><div class="field-feedback" id="attendance-feedback"></div><div class="ref-note" id="attendance-ref-note"></div></div>' +
       "</div>" +
       '<button type="button" class="details-toggle" id="toggle-extra">' + escapeHtml(t("entry.toggleExtra.show")) + '</button>' +
       '<div class="extra-fields" id="extra-fields">' +
@@ -718,6 +748,22 @@
 
       villNote.innerHTML =
         escapeHtml(t("entry.ref.label")) + " " + fmtNum(meta.referenceVillages) + " — " + escapeHtml(window.VILLAGE_SOURCE.label) + " (" + escapeHtml(window.VILLAGE_SOURCE.publisher) + "), " + escapeHtml(t("entry.ref.villageNote"));
+
+      var attNote = document.getElementById("attendance-ref-note");
+      var est = estimateFor(meta.id);
+      if (est) {
+        attNote.innerHTML =
+          escapeHtml(t("entry.ref.estimateLabel")) + " " + fmtNum(est.estimatedAttendance) + " (~" + fmtPct(est.percentChristian) + ") — " + escapeHtml(est.note) + ' <button type="button" class="link" id="use-ref-att">' + escapeHtml(t("entry.ref.use")) + "</button>";
+        var attBtn = document.getElementById("use-ref-att");
+        if (attBtn) {
+          attBtn.addEventListener("click", function () {
+            attendanceInput.value = est.estimatedAttendance;
+            updateAttendanceFeedback();
+          });
+        }
+      } else {
+        attNote.innerHTML = "";
+      }
 
       loadVillageStatus(meta.id).then(function () {
         var count = registryChurchCount(meta.id);

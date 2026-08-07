@@ -280,6 +280,16 @@ html, body {
   font-size: 0.9rem;
 }
 .progress-labels { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--ink-soft); margin-top: 8px; }
+.research-estimate-note {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-light);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #6b5119;
+}
+.research-estimate-note strong { color: #4a3a10; font-size: 0.95rem; }
 
 .chart-wrap { position: relative; height: 320px; margin-top: 10px; }
 .chart-wrap.small { height: 200px; }
@@ -293,8 +303,10 @@ table.provinces tbody tr { cursor: pointer; transition: background 0.12s ease; }
 table.provinces tbody tr:hover { background: var(--teal-soft); }
 .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.2px; }
 .badge.reporting { background: var(--teal-soft); color: var(--teal); }
+.badge.estimated { background: var(--gold-soft); color: #8a6a22; cursor: help; }
 .badge.none { background: #f5eae8; color: var(--danger); }
 .num { font-variant-numeric: tabular-nums; }
+.est-value { color: var(--ink-soft); font-style: italic; }
 
 /* ---- Forms ---- */
 form.entry-form { display: flex; flex-direction: column; gap: 22px; max-width: 660px; }

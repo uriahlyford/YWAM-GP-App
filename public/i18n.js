@@ -40,6 +40,14 @@
     "goal.noData": { en: "No data yet", km: "មិនទាន់មានទិន្នន័យ" },
     "goal.labelStart": { en: "0%", km: "0%" },
     "goal.labelTarget": { en: "Goal: 10% by Jan 2033", km: "គោលដៅ៖ ១០% ត្រឹមខែមករា ២០៣៣" },
+    "goal.researchEstimate": {
+      en: "is the best available independent research estimate of Cambodia's current Christian population, nationally — not yet confirmed province-by-province. Source:",
+      km: "គឺជាការប៉ាន់ស្មានស្រាវជ្រាវឯករាជ្យដ៏ល្អបំផុតដែលមាន សម្រាប់ចំនួនប្រជាជនគ្រិស្តបរិស័ទបច្ចុប្បន្នរបស់កម្ពុជា ថ្នាក់ជាតិ — មិនទាន់បានបញ្ជាក់ជាក់លាក់តាមខេត្តនៅឡើយទេ។ ប្រភព៖",
+    },
+    "table.legend.estimated": {
+      en: "Estimated = a research-based figure (see hover for source), not yet confirmed by that province's pastor. Confirm it by submitting a report.",
+      km: "ប៉ាន់ស្មាន = លេខផ្អែកលើការស្រាវជ្រាវ (សូមមើលព័ត៌មានលម្អិតដោយចុចលើសញ្ញា) មិនទាន់បញ្ជាក់ដោយគ្រូគង្វាលខេត្តនោះទេ។ សូមបញ្ជាក់ដោយដាក់ស្នើរបាយការណ៍។",
+    },
     "goal.emptyNote": {
       en: "No provinces have reported yet. Once pastors begin entering data, national progress will appear here.",
       km: "មិនទាន់មានខេត្តណារាយការណ៍នៅឡើយទេ។ នៅពេលគ្រូគង្វាលចាប់ផ្តើមបញ្ចូលទិន្នន័យ វឌ្ឍនភាពថ្នាក់ជាតិនឹងបង្ហាញនៅទីនេះ។",
@@ -65,7 +73,8 @@
     "table.villagesWithChurch": { en: "Villages with a Church", km: "ភូមិមានក្រុមជំនុំ" },
     "table.lastUpdated": { en: "Last Updated", km: "កាលបរិច្ឆេទថ្មីបំផុត" },
     "table.status": { en: "Status", km: "ស្ថានភាព" },
-    "badge.reporting": { en: "Reporting", km: "កំពុងរាយការណ៍" },
+    "badge.reporting": { en: "Confirmed", km: "បានបញ្ជាក់" },
+    "badge.estimated": { en: "Estimated", km: "ប៉ាន់ស្មាន" },
     "badge.noData": { en: "No data yet", km: "មិនទាន់មានទិន្នន័យ" },
 
     "back.dashboard": { en: "Back to dashboard", km: "ត្រឡប់ទៅផ្ទាំងគ្រប់គ្រង" },
@@ -116,6 +125,7 @@
     "entry.ref.label": { en: "Reference:", km: "សម្គាល់ជាមូលដ្ឋាន៖" },
     "entry.ref.use": { en: "use this number", km: "ប្រើលេខនេះ" },
     "entry.ref.caveat": { en: "if you don't have a more accurate local count.", km: "ប្រសិនបើអ្នកមិនមានចំនួនច្បាស់លាស់ជាងនេះនៅតាមមូលដ្ឋាន។" },
+    "entry.ref.estimateLabel": { en: "Research estimate (not province-specific data — please replace with your real count):", km: "ការប៉ាន់ស្មានស្រាវជ្រាវ (មិនមែនទិន្នន័យជាក់លាក់ខេត្តទេ — សូមជំនួសដោយចំនួនពិតរបស់អ្នក)៖" },
     "entry.ref.villageNote": { en: "official government count — this updates automatically", km: "ចំនួនផ្លូវការរបស់រដ្ឋាភិបាល — លេខនេះកែប្រែស្វ័យប្រវត្តិ" },
     "entry.registryHint": { en: "Want church-by-church accuracy instead of one number? Use the", km: "ចង់បានភាពត្រឹមត្រូវជាក្រុមជំនុំម្តងៗ ជាជាងលេខតែមួយឬ? សូមប្រើ" },
     "entry.registryLink": { en: "Village Registry", km: "បញ្ជីភូមិ" },
