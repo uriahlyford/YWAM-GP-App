@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cambodia 10x2033 — Church Growth Tracker</title>
+  <meta name="description" content="Tracking progress toward 10% Christian in Cambodia by 2033, province by province." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛪</text></svg>" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark">⛪</span>
+        <div>
+          <div class="brand-title">Cambodia 10x2033</div>
+          <div class="brand-sub">Church growth tracker</div>
+        </div>
+      </div>
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-view="dashboard">Dashboard</button>
+        <button class="tab" data-view="entry">Enter Province Data</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="app" class="app">
+    <!-- Views are rendered here by app.js -->
+    <div class="loading" id="initial-loading">Loading…</div>
+  </main>
+
+  <footer class="footer">
+    <p>Built for provincial pastors to report on church planting progress toward the goal of 10% of Cambodia's population following Christ by 2033.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="/provinces.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

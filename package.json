@@ -1,0 +1,9 @@
+{
+  "name": "cambodia-christianity-tracker",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Tracking progress toward 10% of Cambodia's population following Christ by 2033, province by province.",
+  "dependencies": {
+    "@netlify/blobs": "^10.7.12"
+  }
+}
