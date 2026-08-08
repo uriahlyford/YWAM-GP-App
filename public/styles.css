@@ -311,6 +311,84 @@ a:hover { color: var(--accent-hover); }
 .chart-wrap { position: relative; height: 320px; margin-top: 8px; }
 .chart-wrap.small { height: 200px; }
 
+/* ---------- Pace to 2033 ---------- */
+
+.pace-headline {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  flex-wrap: wrap;
+  padding: 22px 0 4px;
+}
+.pace-headline-item { display: flex; flex-direction: column; }
+.pace-headline-item.wide { padding-left: 26px; border-left: 1px solid var(--line); }
+.pace-headline-value { font-size: 2.1rem; font-weight: 800; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.pace-headline-value.accent { color: var(--accent); }
+.pace-headline-label { font-size: 0.76rem; color: var(--ink-dim); font-weight: 600; margin-top: 8px; max-width: 22ch; }
+.pace-arrow { font-size: 1.5rem; color: var(--line-strong); }
+
+.pace-verdict {
+  margin-top: 18px;
+  padding: 14px 17px;
+  background: var(--surface-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.88rem;
+  color: var(--ink-mid);
+  line-height: 1.6;
+}
+.pace-verdict strong { color: var(--ink); }
+
+.assumptions {
+  margin-top: 22px;
+  padding: 18px 20px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+.assumptions-title { font-size: 0.82rem; font-weight: 700; color: var(--ink-mid); margin-bottom: 14px; }
+.assumptions-row { display: flex; gap: 22px; flex-wrap: wrap; align-items: center; }
+.assumption { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 600; }
+.assumption input {
+  width: 78px;
+  padding: 7px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  background: var(--surface);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.assumption input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.assumption .unit { color: var(--ink-dim); font-weight: 500; }
+.assumptions-note { font-size: 0.77rem; color: var(--ink-dim); margin: 14px 0 0; line-height: 1.6; }
+
+.insight {
+  margin-top: 16px;
+  padding: 18px 20px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-sm);
+}
+.insight h4 { margin: 0 0 7px; font-size: 0.94rem; font-weight: 800; letter-spacing: -0.015em; }
+.insight p { margin: 0; font-size: 0.87rem; color: var(--ink-mid); line-height: 1.65; }
+.insight strong { color: var(--accent); }
+
+.pace-strip {
+  margin-top: 18px;
+  padding: 18px 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.pace-strip-title { font-size: 0.73rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: var(--ink-dim); margin-bottom: 14px; }
+.pace-strip-items { display: flex; gap: 36px; flex-wrap: wrap; }
+.pace-strip-items > div { display: flex; flex-direction: column; }
+.pace-strip-value { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.pace-strip-value.accent { color: var(--accent); }
+.pace-strip-label { font-size: 0.75rem; color: var(--ink-dim); font-weight: 600; margin-top: 4px; max-width: 20ch; }
+
 /* ---------- Registry promo ---------- */
 
 .registry-promo {
@@ -640,8 +718,14 @@ dl dd { margin: 0 0 10px; font-variant-numeric: tabular-nums; }
   .card { padding: 19px; }
   .topbar-inner { padding: 12px 15px; }
   .topbar-right { width: 100%; justify-content: space-between; }
-  .tabs { flex: 1; }
-  .tab { flex: 1; text-align: center; padding: 9px 8px; font-size: 0.8rem; }
+  /* four tabs won't fit at 390px — scroll horizontally rather than wrap or shrink */
+  .tabs { flex: 1; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { text-align: center; padding: 9px 12px; font-size: 0.8rem; flex: 0 0 auto; }
+  .pace-headline { gap: 18px; }
+  .pace-headline-item.wide { padding-left: 0; border-left: none; border-top: 1px solid var(--line); padding-top: 16px; width: 100%; }
+  .pace-arrow { display: none; }
+  .pace-strip-items { gap: 22px; }
   .hero-figures { gap: 26px; }
   .registry-promo { padding: 20px; }
 }

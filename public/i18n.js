@@ -15,7 +15,94 @@
     "app.title": { en: "Vision 2033", km: "និមិត្តឆ្នាំ២០៣៣" },
     "app.subtitle": { en: "Church growth tracker", km: "កម្មវិធីតាមដានកំណើនក្រុមជំនុំ" },
     "nav.dashboard": { en: "Dashboard", km: "ផ្ទាំងគ្រប់គ្រង" },
+    "nav.pace": { en: "Pace to 2033", km: "ល្បឿនទៅ២០៣៣" },
     "nav.registry": { en: "Village Registry", km: "បញ្ជីភូមិ" },
+
+    "pace.title": { en: "Pace needed vs. pace actual", km: "ល្បឿនដែលត្រូវការ ធៀបនឹងល្បឿនជាក់ស្តែង" },
+    "pace.sub": {
+      en: "What reaching 10% by 2033 actually requires, year by year — and where today's rate of growth would land instead.",
+      km: "អ្វីដែលការឈានទៅដល់ ១០% ត្រឹមឆ្នាំ២០៣៣ ទាមទារជាក់ស្តែង ម្តងមួយឆ្នាំ — និងកន្លែងដែលអត្រាកំណើនសព្វថ្ងៃនឹងទៅដល់។",
+    },
+    "pace.today": { en: "today", km: "ថ្ងៃនេះ" },
+    "pace.headline.today": { en: "Where we are today", km: "កន្លែងដែលយើងនៅសព្វថ្ងៃ" },
+    "pace.headline.goal": { en: "The 2033 goal", km: "គោលដៅឆ្នាំ២០៣៣" },
+    "pace.headline.trajectory": { en: "Where today's growth rate lands in 2033", km: "កន្លែងដែលអត្រាកំណើនសព្វថ្ងៃនឹងទៅដល់ក្នុងឆ្នាំ២០៣៣" },
+    "pace.verdict.lead": { en: "At the current rate of growth, 2033 arrives", km: "តាមអត្រាកំណើនបច្ចុប្បន្ន ឆ្នាំ២០៣៣នឹងមកដល់ដោយខ្វះ" },
+    "pace.verdict.short": { en: "people short", km: "នាក់" },
+    "pace.verdict.tail": {
+      en: "of the goal. That gap is the whole point of this page — not to discourage, but to make it concrete enough to plan around.",
+      km: "ពីគោលដៅ។ គម្លាតនោះគឺជាចំណុចសំខាន់នៃទំព័រនេះ — មិនមែនដើម្បីធ្វើឲ្យបាក់ទឹកចិត្តទេ ប៉ុន្តែដើម្បីធ្វើឲ្យវាច្បាស់លាស់គ្រប់គ្រាន់សម្រាប់ការរៀបចំផែនការ។",
+    },
+
+    "pace.chart.required": { en: "Pace needed for 10% by 2033", km: "ល្បឿនត្រូវការសម្រាប់ ១០% ត្រឹមឆ្នាំ២០៣៣" },
+    "pace.chart.trajectory": { en: "Current growth rate continued", km: "អត្រាកំណើនបច្ចុប្បន្នបន្តទៅ" },
+
+    "pace.assumptions.title": { en: "Assumptions — change these and everything above recalculates", km: "ការសន្មត់ — ផ្លាស់ប្តូរទាំងនេះ នោះអ្វីៗខាងលើនឹងគណនាឡើងវិញ" },
+    "pace.assumptions.popGrowth": { en: "Population growth", km: "កំណើនប្រជាជន" },
+    "pace.assumptions.believerGrowth": { en: "Believer growth (current)", km: "កំណើនអ្នកជឿ (បច្ចុប្បន្ន)" },
+    "pace.assumptions.reset": { en: "Reset to defaults", km: "កំណត់ឡើងវិញ" },
+    "pace.assumptions.note": {
+      en: "Population growth defaults to 1.2%/yr. Cambodia's own 2019–2024 intercensal figure was 2.1%/yr, but sustaining that for a decade is unlikely and part of it probably reflects better census coverage rather than real growth — try 2.1 to see how much harder the goal becomes. Believer growth of 8.8%/yr is Joshua Project's cited rate for Cambodia, among the fastest in Southeast Asia.",
+      km: "កំណើនប្រជាជនកំណត់ដើមនៅ ១,២%/ឆ្នាំ។ តួលេខរបស់កម្ពុជាឆ្នាំ២០១៩–២០២៤ គឺ ២,១%/ឆ្នាំ ប៉ុន្តែការរក្សាអត្រានេះមួយទសវត្សរ៍គឺមិនទំនងទេ។ សូមសាកល្បង ២,១ ដើម្បីមើលថាគោលដៅកាន់តែពិបាកប៉ុណ្ណា។ កំណើនអ្នកជឿ ៨,៨%/ឆ្នាំ គឺជាអត្រាដែល Joshua Project បានលើកឡើងសម្រាប់កម្ពុជា ក្នុងចំណោមលឿនបំផុតនៅអាស៊ីអាគ្នេយ៍។",
+    },
+
+    "pace.means.title": { en: "What that actually means", km: "អ្វីដែលនោះមានន័យជាក់ស្តែង" },
+    "pace.means.sub": {
+      en: "A national percentage is hard to act on. These are the same number, broken down into units a province, a church and a village can work with.",
+      km: "ភាគរយថ្នាក់ជាតិពិបាកនឹងអនុវត្ត។ ទាំងនេះគឺជាលេខដដែល បំបែកជាឯកតាដែលខេត្ត ក្រុមជំនុំ និងភូមិអាចធ្វើការជាមួយបាន។",
+    },
+    "pace.means.perYear": { en: "New believers per year", km: "អ្នកជឿថ្មីក្នុងមួយឆ្នាំ" },
+    "pace.means.perYear.foot": { en: "nationally, every year until 2033", km: "ថ្នាក់ជាតិ រាល់ឆ្នាំរហូតដល់២០៣៣" },
+    "pace.means.perWeek": { en: "New believers per week", km: "អ្នកជឿថ្មីក្នុងមួយសប្តាហ៍" },
+    "pace.means.perWeek.foot": { en: "across all 25 provinces combined", km: "រួមទាំង ២៥ ខេត្ត" },
+    "pace.means.monthly": { en: "Monthly growth needed", km: "កំណើនប្រចាំខែត្រូវការ" },
+    "pace.means.monthly.foot": { en: "compounding — about 2 people per 100 each month", km: "កើនបន្តបន្ទាប់ — ប្រហែល ២ នាក់ក្នុង ១០០ រាល់ខែ" },
+    "pace.means.perVillage": { en: "Believers per village at 10%", km: "អ្នកជឿក្នុងមួយភូមិនៅ ១០%" },
+    "pace.means.perVillage.foot": { en: "if spread evenly across all 14,372 villages", km: "ប្រសិនបើចែកស្មើគ្នាទូទាំង ១៤,៣៧២ ភូមិ" },
+
+    "pace.insight.multiply.title": { en: "Bigger churches alone cannot get there", km: "ក្រុមជំនុំធំជាងមុនតែម្នាក់ឯងមិនអាចទៅដល់បានទេ" },
+    "pace.insight.multiply.body.a": { en: "If every church that already exists in Cambodia doubled its Sunday attendance, that would close only about", km: "ប្រសិនបើក្រុមជំនុំទាំងអស់ដែលមានស្រាប់នៅកម្ពុជាបង្កើនអ្នកចូលរួមថ្ងៃអាទិត្យទ្វេដង នោះនឹងបំពេញបានត្រឹមតែប្រហែល" },
+    "pace.insight.multiply.body.b": { en: "of the gap. The rest has to come from churches that do not exist yet — roughly", km: "នៃគម្លាត។ នៅសល់ត្រូវតែមកពីក្រុមជំនុំដែលមិនទាន់មាន — ប្រហែល" },
+    "pace.insight.multiply.body.c": { en: "new congregations a year. This is a church-planting goal before it is a church-growth goal.", km: "ក្រុមជំនុំថ្មីក្នុងមួយឆ្នាំ។ នេះគឺជាគោលដៅដាំក្រុមជំនុំ មុននឹងជាគោលដៅពង្រីកក្រុមជំនុំ។" },
+
+    "pace.insight.monthly.title": { en: "Yearly targets discourage; monthly targets move", km: "គោលដៅប្រចាំឆ្នាំធ្វើឲ្យបាក់ទឹកចិត្ត គោលដៅប្រចាំខែធ្វើឲ្យរីកចម្រើន" },
+    "pace.insight.monthly.body": {
+      en: "The growth rate required sounds impossible stated per year, and reasonable stated per month — it is the same number. A congregation of 100 adding two people a month is exactly on pace. That is the version worth putting in front of a local leader.",
+      km: "អត្រាកំណើនដែលត្រូវការស្តាប់ទៅមិនអាចទៅរួចនៅពេលនិយាយជាឆ្នាំ ប៉ុន្តែសមហេតុផលនៅពេលនិយាយជាខែ — វាគឺជាលេខដដែល។ ក្រុមជំនុំ ១០០ នាក់ដែលបន្ថែម ២ នាក់ក្នុងមួយខែ គឺស្ថិតនៅលើល្បឿនត្រឹមត្រូវ។ នោះគឺជាកំណែដែលគួរដាក់ជូនអ្នកដឹកនាំមូលដ្ឋាន។",
+    },
+
+    "pace.insight.leading.title": { en: "Watch villages, not just attendance", km: "សូមតាមដានភូមិ មិនត្រឹមតែអ្នកចូលរួម" },
+    "pace.insight.leading.body": {
+      en: "Attendance is a lagging number — it only moves after a church exists. The share of villages with any church at all moves first, which makes it the earlier warning signal. That is what the Village Registry is for: it turns a national percentage into a specific list of places with no church yet.",
+      km: "ចំនួនអ្នកចូលរួមគឺជាលេខតាមក្រោយ — វាកើនឡើងតែបន្ទាប់ពីមានក្រុមជំនុំ។ សមាមាត្រនៃភូមិដែលមានក្រុមជំនុំកើនឡើងមុន ដែលធ្វើឲ្យវាជាសញ្ញាព្រមានមុនគេ។ នោះជាគោលបំណងនៃបញ្ជីភូមិ៖ វាបំប្លែងភាគរយថ្នាក់ជាតិទៅជាបញ្ជីជាក់លាក់នៃកន្លែងដែលមិនទាន់មានក្រុមជំនុំ។",
+    },
+
+    "pace.table.title": { en: "Year by year", km: "ម្តងមួយឆ្នាំ" },
+    "pace.table.sub": {
+      en: "The middle column is the one to plan against: how many people need to be gathered in churches by the end of each year to still be on pace.",
+      km: "ជួរឈរកណ្តាលគឺជាអ្វីដែលត្រូវរៀបចំផែនការ៖ តើមានមនុស្សប៉ុន្មាននាក់ត្រូវប្រមូលផ្តុំក្នុងក្រុមជំនុំត្រឹមចុងឆ្នាំនីមួយៗ ដើម្បីនៅតែស្ថិតលើល្បឿនត្រឹមត្រូវ។",
+    },
+    "pace.table.year": { en: "Year", km: "ឆ្នាំ" },
+    "pace.table.population": { en: "Cambodia's population", km: "ចំនួនប្រជាជនកម្ពុជា" },
+    "pace.table.needed": { en: "Believers needed", km: "អ្នកជឿត្រូវការ" },
+    "pace.table.percent": { en: "% of population", km: "% នៃប្រជាជន" },
+    "pace.table.newThisYear": { en: "New that year", km: "ថ្មីក្នុងឆ្នាំនោះ" },
+    "pace.table.trajectory": { en: "At current growth", km: "តាមកំណើនបច្ចុប្បន្ន" },
+
+    "pace.province.title": { en: "Each province's share", km: "ចំណែករបស់ខេត្តនីមួយៗ" },
+    "pace.province.sub": {
+      en: "Every province reaching 10% of its own population. Sorted by the size of the yearly ask, so it is clear where the greatest need — and the greatest opportunity — sits.",
+      km: "ខេត្តនីមួយៗឈានទៅដល់ ១០% នៃចំនួនប្រជាជនរបស់ខ្លួន។ តម្រៀបតាមទំហំនៃតម្រូវការប្រចាំឆ្នាំ ដើម្បីឲ្យច្បាស់ថាតម្រូវការធំបំផុត — និងឱកាសធំបំផុត — ស្ថិតនៅឯណា។",
+    },
+    "pace.province.now": { en: "Today", km: "សព្វថ្ងៃ" },
+    "pace.province.target": { en: "2033 target", km: "គោលដៅ២០៣៣" },
+    "pace.province.perYear": { en: "Needed per year", km: "ត្រូវការក្នុងមួយឆ្នាំ" },
+    "pace.province.perWeek": { en: "Per week", km: "ក្នុងមួយសប្តាហ៍" },
+
+    "detail.pace.title": { en: "Pace to 2033", km: "ល្បឿនទៅ២០៣៣" },
+    "detail.pace.target": { en: "2033 target", km: "គោលដៅ២០៣៣" },
+    "detail.pace.perYear": { en: "New believers needed per year", km: "អ្នកជឿថ្មីត្រូវការក្នុងមួយឆ្នាំ" },
+    "detail.pace.perVillage": { en: "Believers per village at 10%", km: "អ្នកជឿក្នុងមួយភូមិនៅ ១០%" },
     "nav.entry": { en: "Enter Data", km: "បញ្ចូលទិន្នន័យ" },
 
     "hero.eyebrow": { en: "Vision · Cambodia", km: "និមិត្ត · កម្ពុជា" },
@@ -31,6 +118,7 @@
 
     "goal.legend.confirmed": { en: "Confirmed by pastors", km: "បញ្ជាក់ដោយគ្រូគង្វាល" },
     "goal.legend.estimated": { en: "Best current estimate", km: "ការប៉ាន់ស្មានល្អបំផុតបច្ចុប្បន្ន" },
+    "goal.seePace": { en: "See what this requires year by year", km: "មើលអ្វីដែលនេះទាមទារម្តងមួយឆ្នាំ" },
     "goal.methodNote": {
       en: "The lighter bar is our best estimate for the whole country; the solid bar is what pastors have actually confirmed. As reports come in, the solid bar replaces the estimate.",
       km: "របារពណ៌ស្រាលគឺជាការប៉ាន់ស្មានល្អបំផុតរបស់យើងសម្រាប់ទូទាំងប្រទេស។ របារពណ៌ដិតគឺជាអ្វីដែលគ្រូគង្វាលបានបញ្ជាក់ជាក់ស្តែង។ នៅពេលរបាយការណ៍ចូលមក របារពណ៌ដិតនឹងជំនួសការប៉ាន់ស្មាន។",

@@ -13,6 +13,7 @@
     villageHierarchy: {}, // provinceId -> {districts, villageCount, communeCount, districtCount}
     villageStatus: {}, // provinceId -> { [villageCode]: {hasChurch, note} }
     registrySummary: null, // provinceId -> marked-village count (lightweight, all provinces)
+    paceOpts: null, // user-adjusted projection assumptions, null = defaults
   };
 
   var charts = {}; // keep Chart.js instances so we can destroy before re-render
@@ -39,6 +40,7 @@
     document.getElementById("brand-title").textContent = t("app.title");
     document.getElementById("brand-sub").textContent = t("app.subtitle");
     document.getElementById("tab-dashboard").textContent = t("nav.dashboard");
+    document.getElementById("tab-pace").textContent = t("nav.pace");
     document.getElementById("tab-registry").textContent = t("nav.registry");
     document.getElementById("tab-entry").textContent = t("nav.entry");
     document.getElementById("footer-text").textContent = t("footer.text");
@@ -53,6 +55,7 @@
   var TAB_FOR_VIEW = {
     dashboard: "dashboard",
     province: "dashboard",
+    pace: "pace",
     "registry-picker": "registry-picker",
     registry: "registry-picker",
     entry: "entry",
@@ -275,6 +278,8 @@
       renderEntry();
     } else if (state.view === "province") {
       renderProvinceDetail(state.selectedProvinceId);
+    } else if (state.view === "pace") {
+      renderPace();
     } else if (state.view === "registry-picker") {
       renderRegistryPicker();
     } else if (state.view === "registry") {
@@ -329,6 +334,136 @@
       confirmedProvinces: confirmedProvinces,
       blendedPercent: nationalPop ? (totalChristians / nationalPop) * 100 : null,
       confirmedPercent: nationalPop ? (confirmedChristians / nationalPop) * 100 : null,
+    };
+  }
+
+  // ---------- Pace to 2033 ----------
+
+  function currentYear() {
+    return new Date().getFullYear();
+  }
+
+  function projectedPopulation(year, growth) {
+    var P = window.PROJECTION;
+    return P.populationBase * Math.pow(1 + growth, year - P.populationBaseYear);
+  }
+
+  /**
+   * The whole plan in one object: what reaching 10% by 2033 actually requires each year,
+   * versus where the current growth rate lands.
+   *
+   * Required growth is modelled as a constant compound rate rather than a straight line,
+   * because movements compound — and because the monthly version of a compound rate is the
+   * number a local leader can actually act on.
+   */
+  function computePace(opts) {
+    var P = window.PROJECTION;
+    var popGrowth = opts && opts.popGrowth !== undefined ? opts.popGrowth : P.populationGrowth;
+    var believerGrowth = opts && opts.believerGrowth !== undefined ? opts.believerGrowth : P.believerGrowth;
+
+    var picture = computeNationalPicture();
+    var startYear = currentYear();
+    var years = Math.max(1, P.goalYear - startYear);
+
+    // The percentage is what we actually estimated; the believer count follows from it.
+    // Deriving today's count from that percentage against today's projected population (rather
+    // than reusing the count computed against the 2024 census base) keeps the headline figure
+    // and the first row of the year-by-year table agreeing with each other.
+    var currentPercent = picture.blendedPercent || 0;
+    var startPop = projectedPopulation(startYear, popGrowth);
+    var current = (currentPercent / 100) * startPop;
+
+    var goalPop = projectedPopulation(P.goalYear, popGrowth);
+    var target = (goalPop * P.goalPercent) / 100;
+    var gap = target - current;
+
+    var requiredCagr = Math.pow(target / current, 1 / years) - 1;
+    var requiredMonthly = Math.pow(1 + requiredCagr, 1 / 12) - 1;
+
+    var rows = [];
+    var prevRequired = current;
+    for (var y = startYear; y <= P.goalYear; y++) {
+      var n = y - startYear;
+      var pop = projectedPopulation(y, popGrowth);
+      var required = current * Math.pow(1 + requiredCagr, n);
+      var trajectory = current * Math.pow(1 + believerGrowth, n);
+      rows.push({
+        year: y,
+        population: pop,
+        required: required,
+        requiredPercent: (required / pop) * 100,
+        newThisYear: n === 0 ? 0 : required - prevRequired,
+        trajectory: trajectory,
+        trajectoryPercent: (trajectory / pop) * 100,
+      });
+      prevRequired = required;
+    }
+
+    var endTrajectory = current * Math.pow(1 + believerGrowth, years);
+    var perYear = gap / years;
+
+    // If every church that already exists doubled its attendance, how much of the gap closes?
+    var avgChurchSize = P.knownChurches ? current / P.knownChurches : 0;
+    var doublingCovers = gap > 0 ? (current / gap) * 100 : 0;
+    // Remaining gap has to come from churches that don't exist yet.
+    var newChurchesNeeded = avgChurchSize > 0 ? Math.max(0, gap - current) / avgChurchSize : 0;
+
+    return {
+      startYear: startYear,
+      years: years,
+      current: current,
+      currentPercent: picture.blendedPercent,
+      goalPop: goalPop,
+      target: target,
+      gap: gap,
+      perYear: perYear,
+      perMonth: perYear / 12,
+      perWeek: perYear / 52,
+      perDay: perYear / 365,
+      requiredCagr: requiredCagr,
+      requiredMonthly: requiredMonthly,
+      believerGrowth: believerGrowth,
+      popGrowth: popGrowth,
+      endTrajectory: endTrajectory,
+      endTrajectoryPercent: (endTrajectory / goalPop) * 100,
+      shortfall: target - endTrajectory,
+      perVillageAtGoal: target / P.totalVillages,
+      avgChurchSize: avgChurchSize,
+      doublingCovers: doublingCovers,
+      newChurchesNeeded: newChurchesNeeded,
+      newChurchesPerYear: newChurchesNeeded / years,
+      rows: rows,
+    };
+  }
+
+  /** A single province's share of the national goal, on the same model. */
+  function provincePace(provinceId, popGrowth) {
+    var P = window.PROJECTION;
+    var meta = findProvinceMeta(provinceId);
+    if (!meta) return null;
+    var growth = popGrowth === undefined ? P.populationGrowth : popGrowth;
+
+    var rec = getProvinceRecord(provinceId);
+    var latest = rec ? latestOf(rec) : null;
+    var est = estimateFor(provinceId);
+    var current = latest ? latest.sundayAttendance : est ? est.estimatedAttendance : 0;
+    var basePop = latest && latest.population ? latest.population : meta.referencePopulation;
+
+    var years = Math.max(1, P.goalYear - currentYear());
+    var pop2033 = basePop * Math.pow(1 + growth, P.goalYear - P.populationBaseYear);
+    var target = (pop2033 * P.goalPercent) / 100;
+    var gap = Math.max(0, target - current);
+
+    return {
+      current: current,
+      confirmed: !!latest,
+      target: target,
+      gap: gap,
+      perYear: gap / years,
+      perWeek: gap / years / 52,
+      villages: meta.referenceVillages,
+      perVillageAtGoal: target / meta.referenceVillages,
+      years: years,
     };
   }
 
@@ -483,6 +618,7 @@
           escapeHtml(t("goal.governmentFigure")) + " " + fmtPct(window.NATIONAL_ESTIMATE.governmentPercent) + "." +
           "</div>"
         : "") +
+      '<button class="link" id="see-pace" style="margin-top:16px">' + escapeHtml(t("goal.seePace")) + " &rarr;</button>" +
       "</div>" +
       '<div class="registry-promo">' +
       '<div class="registry-promo-body">' +
@@ -525,8 +661,215 @@
     document.getElementById("promo-registry").addEventListener("click", function () {
       setView("registry-picker");
     });
+    document.getElementById("see-pace").addEventListener("click", function () {
+      setView("pace");
+    });
 
     renderNationalChart();
+  }
+
+  // ---------- Pace to 2033 view ----------
+
+  function renderPace() {
+    var pace = computePace(state.paceOpts);
+    var P = window.PROJECTION;
+
+    var rowsHtml = pace.rows
+      .map(function (r, i) {
+        var behind = r.trajectory < r.required;
+        return (
+          "<tr>" +
+          "<td><strong>" + r.year + "</strong>" + (i === 0 ? ' <span class="muted">(' + escapeHtml(t("pace.today")) + ")</span>" : "") + "</td>" +
+          '<td class="numeric">' + fmtNum(r.population) + "</td>" +
+          '<td class="numeric"><strong>' + fmtNum(r.required) + "</strong></td>" +
+          '<td class="numeric">' + fmtPct(r.requiredPercent) + "</td>" +
+          '<td class="numeric">' + (i === 0 ? "—" : "+" + fmtNum(r.newThisYear)) + "</td>" +
+          '<td class="numeric ' + (behind ? "est-value" : "") + '">' + fmtNum(r.trajectory) + " <span class=\"muted\">(" + fmtPct(r.trajectoryPercent) + ")</span></td>" +
+          "</tr>"
+        );
+      })
+      .join("");
+
+    appEl.innerHTML =
+      '<div class="card">' +
+      '<div class="section-title">' + escapeHtml(t("pace.title")) + "</div>" +
+      '<div class="section-sub">' + escapeHtml(t("pace.sub")) + "</div>" +
+
+      // headline contrast
+      '<div class="pace-headline">' +
+      '<div class="pace-headline-item">' +
+      '<div class="pace-headline-value">' + fmtPct(pace.currentPercent) + "</div>" +
+      '<div class="pace-headline-label">' + escapeHtml(t("pace.headline.today")) + "</div>" +
+      "</div>" +
+      '<div class="pace-arrow">&rarr;</div>' +
+      '<div class="pace-headline-item">' +
+      '<div class="pace-headline-value accent">' + fmtPct(P.goalPercent, 0) + "</div>" +
+      '<div class="pace-headline-label">' + escapeHtml(t("pace.headline.goal")) + "</div>" +
+      "</div>" +
+      '<div class="pace-headline-item wide">' +
+      '<div class="pace-headline-value">' + fmtPct(pace.endTrajectoryPercent) + "</div>" +
+      '<div class="pace-headline-label">' + escapeHtml(t("pace.headline.trajectory")) + "</div>" +
+      "</div>" +
+      "</div>" +
+
+      '<div class="pace-verdict">' + escapeHtml(t("pace.verdict.lead")) + " <strong>" +
+      fmtNum(pace.shortfall) + " " + escapeHtml(t("pace.verdict.short")) + "</strong> " +
+      escapeHtml(t("pace.verdict.tail")) + "</div>" +
+
+      '<div class="chart-wrap" style="margin-top:22px"><canvas id="pace-chart"></canvas></div>' +
+
+      // assumptions
+      '<div class="assumptions">' +
+      '<div class="assumptions-title">' + escapeHtml(t("pace.assumptions.title")) + "</div>" +
+      '<div class="assumptions-row">' +
+      '<label class="assumption"><span>' + escapeHtml(t("pace.assumptions.popGrowth")) + "</span>" +
+      '<input type="number" id="a-pop" step="0.1" min="0" max="5" value="' + (pace.popGrowth * 100).toFixed(1) + '"><span class="unit">%/yr</span></label>' +
+      '<label class="assumption"><span>' + escapeHtml(t("pace.assumptions.believerGrowth")) + "</span>" +
+      '<input type="number" id="a-bel" step="0.1" min="0" max="60" value="' + (pace.believerGrowth * 100).toFixed(1) + '"><span class="unit">%/yr</span></label>' +
+      '<button class="link" id="a-reset">' + escapeHtml(t("pace.assumptions.reset")) + "</button>" +
+      "</div>" +
+      '<p class="assumptions-note">' + escapeHtml(t("pace.assumptions.note")) + "</p>" +
+      "</div>" +
+      "</div>" +
+
+      // what it means
+      '<div class="card" style="margin-top:18px">' +
+      '<div class="section-title">' + escapeHtml(t("pace.means.title")) + "</div>" +
+      '<div class="section-sub">' + escapeHtml(t("pace.means.sub")) + "</div>" +
+      '<div class="grid stats">' +
+      statCard("📅", t("pace.means.perYear"), fmtNum(pace.perYear), t("pace.means.perYear.foot")) +
+      statCard("🗓️", t("pace.means.perWeek"), fmtNum(pace.perWeek), t("pace.means.perWeek.foot")) +
+      statCard("📈", t("pace.means.monthly"), fmtPct(pace.requiredMonthly * 100, 2), t("pace.means.monthly.foot")) +
+      statCard("🏘️", t("pace.means.perVillage"), fmtNum(pace.perVillageAtGoal), t("pace.means.perVillage.foot")) +
+      "</div>" +
+      '<div class="insight">' +
+      "<h4>" + escapeHtml(t("pace.insight.multiply.title")) + "</h4>" +
+      "<p>" + escapeHtml(t("pace.insight.multiply.body.a")) + " <strong>" + fmtPct(pace.doublingCovers, 0) + "</strong> " +
+      escapeHtml(t("pace.insight.multiply.body.b")) + " <strong>" + fmtNum(pace.newChurchesPerYear) + "</strong> " +
+      escapeHtml(t("pace.insight.multiply.body.c")) + "</p>" +
+      "</div>" +
+      '<div class="insight">' +
+      "<h4>" + escapeHtml(t("pace.insight.monthly.title")) + "</h4>" +
+      "<p>" + escapeHtml(t("pace.insight.monthly.body")) + "</p>" +
+      "</div>" +
+      '<div class="insight">' +
+      "<h4>" + escapeHtml(t("pace.insight.leading.title")) + "</h4>" +
+      "<p>" + escapeHtml(t("pace.insight.leading.body")) + "</p>" +
+      "</div>" +
+      "</div>" +
+
+      // year by year
+      '<div class="card" style="margin-top:18px">' +
+      '<div class="section-title">' + escapeHtml(t("pace.table.title")) + "</div>" +
+      '<div class="section-sub">' + escapeHtml(t("pace.table.sub")) + "</div>" +
+      '<div class="table-wrap"><table class="provinces"><thead><tr>' +
+      "<th>" + escapeHtml(t("pace.table.year")) + "</th>" +
+      "<th>" + escapeHtml(t("pace.table.population")) + "</th>" +
+      "<th>" + escapeHtml(t("pace.table.needed")) + "</th>" +
+      "<th>" + escapeHtml(t("pace.table.percent")) + "</th>" +
+      "<th>" + escapeHtml(t("pace.table.newThisYear")) + "</th>" +
+      "<th>" + escapeHtml(t("pace.table.trajectory")) + "</th>" +
+      "</tr></thead><tbody>" + rowsHtml + "</tbody></table></div>" +
+      "</div>" +
+
+      // per-province allocation
+      '<div class="card" style="margin-top:18px">' +
+      '<div class="section-title">' + escapeHtml(t("pace.province.title")) + "</div>" +
+      '<div class="section-sub">' + escapeHtml(t("pace.province.sub")) + "</div>" +
+      '<div class="table-wrap"><table class="provinces"><thead><tr>' +
+      "<th>" + escapeHtml(t("table.province")) + "</th>" +
+      "<th>" + escapeHtml(t("pace.province.now")) + "</th>" +
+      "<th>" + escapeHtml(t("pace.province.target")) + "</th>" +
+      "<th>" + escapeHtml(t("pace.province.perYear")) + "</th>" +
+      "<th>" + escapeHtml(t("pace.province.perWeek")) + "</th>" +
+      "</tr></thead><tbody>" +
+      window.PROVINCES.slice()
+        .map(function (m) { return { meta: m, pace: provincePace(m.id, pace.popGrowth) }; })
+        .sort(function (a, b) { return b.pace.perYear - a.pace.perYear; })
+        .map(function (r) {
+          return (
+            '<tr data-province="' + r.meta.id + '">' +
+            "<td>" + escapeHtml(provinceName(r.meta)) + "</td>" +
+            '<td class="numeric' + (r.pace.confirmed ? "" : " est-value") + '">' + fmtNum(r.pace.current) + "</td>" +
+            '<td class="numeric">' + fmtNum(r.pace.target) + "</td>" +
+            '<td class="numeric"><strong>+' + fmtNum(r.pace.perYear) + "</strong></td>" +
+            '<td class="numeric">+' + fmtNum(r.pace.perWeek) + "</td>" +
+            "</tr>"
+          );
+        })
+        .join("") +
+      "</tbody></table></div>" +
+      "</div>";
+
+    Array.prototype.forEach.call(appEl.querySelectorAll("tr[data-province]"), function (tr) {
+      tr.addEventListener("click", function () { setView("province", tr.getAttribute("data-province")); });
+    });
+
+    function readAssumptions() {
+      var pop = Number(document.getElementById("a-pop").value);
+      var bel = Number(document.getElementById("a-bel").value);
+      state.paceOpts = {
+        popGrowth: isFinite(pop) && pop >= 0 ? pop / 100 : P.populationGrowth,
+        believerGrowth: isFinite(bel) && bel >= 0 ? bel / 100 : P.believerGrowth,
+      };
+      render();
+    }
+    document.getElementById("a-pop").addEventListener("change", readAssumptions);
+    document.getElementById("a-bel").addEventListener("change", readAssumptions);
+    document.getElementById("a-reset").addEventListener("click", function () {
+      state.paceOpts = null;
+      render();
+    });
+
+    renderPaceChart(pace);
+  }
+
+  function renderPaceChart(pace) {
+    var canvas = document.getElementById("pace-chart");
+    if (!canvas) return;
+    if (!window.Chart) { showChartFallback(canvas); return; }
+    if (charts.pace) charts.pace.destroy();
+
+    charts.pace = new Chart(canvas.getContext("2d"), {
+      type: "line",
+      data: {
+        labels: pace.rows.map(function (r) { return String(r.year); }),
+        datasets: [
+          {
+            label: t("pace.chart.required"),
+            data: pace.rows.map(function (r) { return r.requiredPercent; }),
+            borderColor: CHART_THEME.accent,
+            backgroundColor: CHART_THEME.accentFill,
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.25,
+            pointRadius: 3,
+            pointBackgroundColor: CHART_THEME.accent,
+          },
+          {
+            label: t("pace.chart.trajectory"),
+            data: pace.rows.map(function (r) { return r.trajectoryPercent; }),
+            borderColor: CHART_THEME.muted,
+            borderWidth: 2,
+            borderDash: [6, 5],
+            fill: false,
+            tension: 0.25,
+            pointRadius: 2,
+          },
+        ],
+      },
+      options: Object.assign(baseChartOptions(), {
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: CHART_THEME.axis,
+          y: Object.assign({ beginAtZero: true, suggestedMax: 11 }, CHART_THEME.axis, {
+            ticks: Object.assign({}, CHART_THEME.axis.ticks, {
+              callback: function (v) { return v + "%"; },
+            }),
+          }),
+        },
+      }),
+    });
   }
 
   // ---------- Village Registry: province picker ----------
@@ -592,15 +935,16 @@
   // Chart styling for the dark theme. Chart.js defaults assume a light background,
   // so axes/grid/legend all need explicit colors or they render nearly invisible.
   var CHART_THEME = {
-    mint: "#34E5B0",
-    mintFill: "rgba(52, 229, 176, 0.13)",
-    amber: "#FBBF24",
-    bg: "#080B14",
-    ink: "#97A6BF",
+    accent: "#A9502F",
+    accentFill: "rgba(169, 80, 47, 0.10)",
+    muted: "#9AA1AC",
+    amber: "#8A6D3B",
+    bg: "#FFFFFF",
+    ink: "#4E5661",
     axis: {
-      grid: { color: "rgba(255,255,255,0.06)", drawBorder: false },
+      grid: { color: "rgba(22,24,28,0.07)", drawBorder: false },
       border: { display: false },
-      ticks: { color: "#64748B", font: { size: 11, family: "JetBrains Mono, monospace" } },
+      ticks: { color: "#7A828E", font: { size: 11, family: "Plus Jakarta Sans, sans-serif" } },
     },
   };
 
@@ -680,14 +1024,14 @@
           {
             label: t("chart.actual"),
             data: actual,
-            borderColor: CHART_THEME.mint,
-            backgroundColor: CHART_THEME.mintFill,
+            borderColor: CHART_THEME.accent,
+            backgroundColor: CHART_THEME.accentFill,
             borderWidth: 2.5,
             fill: true,
             tension: 0.3,
             spanGaps: true,
             pointRadius: 3,
-            pointBackgroundColor: CHART_THEME.mint,
+            pointBackgroundColor: CHART_THEME.accent,
             pointBorderColor: CHART_THEME.bg,
             pointBorderWidth: 2,
           },
@@ -766,6 +1110,19 @@
         ? statCard("📖", t("detail.directoryChurches"), fmtNum(churchCountFor(id)), t("detail.directorySource"))
         : "") +
       "</div>" +
+      (function () {
+        var pp = provincePace(id);
+        if (!pp) return "";
+        return (
+          '<div class="pace-strip">' +
+          '<div class="pace-strip-title">' + escapeHtml(t("detail.pace.title")) + "</div>" +
+          '<div class="pace-strip-items">' +
+          '<div><span class="pace-strip-value">' + fmtNum(pp.target) + '</span><span class="pace-strip-label">' + escapeHtml(t("detail.pace.target")) + "</span></div>" +
+          '<div><span class="pace-strip-value accent">+' + fmtNum(pp.perYear) + '</span><span class="pace-strip-label">' + escapeHtml(t("detail.pace.perYear")) + "</span></div>" +
+          '<div><span class="pace-strip-value">' + fmtNum(pp.perVillageAtGoal) + '</span><span class="pace-strip-label">' + escapeHtml(t("detail.pace.perVillage")) + "</span></div>" +
+          "</div></div>"
+        );
+      })() +
       '<div class="two-panel" style="margin-top:20px">' +
       '<div class="card">' +
       '<div class="section-title">' +
@@ -857,13 +1214,13 @@
           {
             label: t("detail.chartTitle"),
             data: data,
-            borderColor: CHART_THEME.mint,
-            backgroundColor: CHART_THEME.mintFill,
+            borderColor: CHART_THEME.accent,
+            backgroundColor: CHART_THEME.accentFill,
             borderWidth: 2.5,
             fill: true,
             tension: 0.3,
             pointRadius: 3,
-            pointBackgroundColor: CHART_THEME.mint,
+            pointBackgroundColor: CHART_THEME.accent,
             pointBorderColor: CHART_THEME.bg,
             pointBorderWidth: 2,
             spanGaps: true,

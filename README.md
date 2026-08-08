@@ -168,6 +168,56 @@ team passcode, set via the `ENTRY_PASSCODE` environment variable in the
 Netlify site settings (falls back to `ywam2033` if unset — change this before
 sharing widely). Viewing the dashboard is open to anyone with the link.
 
+## Pace to 2033
+
+The app models what the goal actually requires, and compares it to where the
+current rate of growth lands. Assumptions live in `public/data/projection.js`
+and are editable live in the UI, so the team can test how sensitive the plan is
+rather than trusting one number.
+
+**The headline arithmetic** (at the 1.2%/yr population default):
+
+| | |
+|---|---|
+| Cambodia's population in 2033 | ~19.3 million |
+| 10% of that | **~1,930,000 people** |
+| Today (~2.0%) | ~355,000 people |
+| Gap | ~1,575,000 people over 7 years |
+| Required rate | **~27.4%/yr** — or **~2.03%/month** |
+| Current observed rate | 8.8%/yr, landing at **~3.3%** in 2033 |
+
+Two modelling choices worth knowing:
+
+- **The goal is a moving target.** Population growth means the 10% threshold
+  rises every year. Cambodia's own 2019–2024 intercensal figure was 2.1%/yr;
+  the app defaults to a more conservative 1.2% because sustaining 2.1% for a
+  decade is unlikely and part of it probably reflects improved census coverage.
+  Setting it to 2.1 in the UI raises the target to ~2.09M — not a rounding error,
+  which is exactly why it's exposed rather than buried.
+- **Required growth is compounded, not linear**, because movements compound —
+  and because the monthly form of a compound rate is the only version a local
+  leader can act on.
+
+**Three framings the page surfaces**, each falling out of the arithmetic rather
+than being asserted:
+
+1. *Bigger churches alone cannot get there.* If every church that already exists
+   in Cambodia doubled its Sunday attendance, that closes only ~22% of the gap.
+   The remainder — roughly 800+ new congregations a year — has to come from
+   churches that don't exist yet. This is a church-planting goal before it is a
+   church-growth goal.
+2. *Yearly targets discourage; monthly targets move.* 27%/yr and 2%/month are
+   the same number. A congregation of 100 adding two people a month is exactly
+   on pace.
+3. *Villages are the leading indicator.* Attendance only moves after a church
+   exists, so it lags. The share of villages with any church at all moves first
+   — which is what the Village Registry measures, turning a national percentage
+   into a specific list of places with no church yet.
+
+At 10%, an even spread works out to about **134 believers in every one of
+Cambodia's 14,372 villages** — which is roughly the Mission Kampuchea 2021
+vision of a believing community in every village, restated as a number.
+
 ## Design
 
 Dark-first interface built for phones on patchy connections: high contrast,
