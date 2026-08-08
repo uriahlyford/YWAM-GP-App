@@ -13,6 +13,20 @@ function getPasscode() {
 
 async function handleGet(s, req) {
   const url = new URL(req.url);
+
+  // ?summary=1 — one call returning marked-village counts for every province, so the
+  // registry picker doesn't have to make 25 separate requests.
+  if (url.searchParams.get("summary")) {
+    const { blobs } = await s.list({ prefix: "village-status:" });
+    const counts = {};
+    for (const b of blobs) {
+      const provinceId = b.key.slice("village-status:".length);
+      const statuses = (await s.get(b.key, { type: "json" })) || {};
+      counts[provinceId] = Object.keys(statuses).filter((code) => statuses[code]?.hasChurch).length;
+    }
+    return Response.json({ counts });
+  }
+
   const provinceId = url.searchParams.get("province");
   if (!provinceId) {
     return Response.json({ error: "Missing province." }, { status: 400 });

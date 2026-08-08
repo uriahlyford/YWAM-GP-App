@@ -15,7 +15,8 @@
     "app.title": { en: "Vision 2033", km: "និមិត្តឆ្នាំ២០៣៣" },
     "app.subtitle": { en: "Church growth tracker", km: "កម្មវិធីតាមដានកំណើនក្រុមជំនុំ" },
     "nav.dashboard": { en: "Dashboard", km: "ផ្ទាំងគ្រប់គ្រង" },
-    "nav.entry": { en: "Enter Province Data", km: "បញ្ចូលទិន្នន័យខេត្ត" },
+    "nav.registry": { en: "Village Registry", km: "បញ្ជីភូមិ" },
+    "nav.entry": { en: "Enter Data", km: "បញ្ចូលទិន្នន័យ" },
 
     "hero.eyebrow": { en: "Vision · Cambodia", km: "និមិត្ត · កម្ពុជា" },
     "hero.title": { en: "10% of Cambodia following Christ by 2033", km: "១០% នៃប្រជាជនកម្ពុជាដើរតាមព្រះគ្រិស្តត្រឹមឆ្នាំ២០៣៣" },
@@ -23,16 +24,44 @@
       en: "Senior pastors in every province report their numbers here so the whole movement can see, together, how close we are to the goal — and where prayer and workers are needed most.",
       km: "គ្រូគង្វាលនាំមុខនៅគ្រប់ខេត្តទាំងអស់ រាយការណ៍ចំនួនរបស់ខ្លួននៅទីនេះ ដើម្បីឲ្យចលនាទាំងមូលបានឃើញជាមួយគ្នា ថាយើងខិតជិតគោលដៅប៉ុណ្ណា — និងកន្លែងណាដែលត្រូវការការអធិស្ឋាន និងកម្មករបន្ថែម។",
     },
+    "hero.figures.following": { en: "Following Christ today", km: "កំពុងដើរតាមព្រះគ្រិស្តសព្វថ្ងៃ" },
+    "hero.figures.people": { en: "People", km: "នាក់" },
+    "hero.figures.population": { en: "Cambodia's population", km: "ចំនួនប្រជាជនកម្ពុជា" },
+    "hero.figures.yearsLeft": { en: "Years to 2033", km: "ឆ្នាំទៀតដល់២០៣៣" },
+
+    "goal.legend.confirmed": { en: "Confirmed by pastors", km: "បញ្ជាក់ដោយគ្រូគង្វាល" },
+    "goal.legend.estimated": { en: "Best current estimate", km: "ការប៉ាន់ស្មានល្អបំផុតបច្ចុប្បន្ន" },
+    "goal.methodNote": {
+      en: "The lighter bar is our best estimate for the whole country; the solid bar is what pastors have actually confirmed. As reports come in, the solid bar replaces the estimate.",
+      km: "របារពណ៌ស្រាលគឺជាការប៉ាន់ស្មានល្អបំផុតរបស់យើងសម្រាប់ទូទាំងប្រទេស។ របារពណ៌ដិតគឺជាអ្វីដែលគ្រូគង្វាលបានបញ្ជាក់ជាក់ស្តែង។ នៅពេលរបាយការណ៍ចូលមក របារពណ៌ដិតនឹងជំនួសការប៉ាន់ស្មាន។",
+    },
+
+    "stat.reportingProvinces.foot": { en: "have submitted a report", km: "បានដាក់ស្នើរបាយការណ៍" },
+
+    "registry.promo.title": { en: "Track it village by village", km: "តាមដានម្តងមួយភូមិ" },
+    "registry.promo.body": {
+      en: "Every village in Cambodia is already listed — all 14,372 of them, from the official government gazetteer, organised by district and commune. Open your province and mark which villages have a church.",
+      km: "ភូមិទាំងអស់នៅកម្ពុជាមានរាយរួចហើយ — ទាំង ១៤,៣៧២ ភូមិ ពីបញ្ជីផ្លូវការរបស់រដ្ឋាភិបាល រៀបចំតាមស្រុក និងឃុំ។ សូមបើកខេត្តរបស់អ្នក ហើយគូសសម្គាល់ភូមិណាមានក្រុមជំនុំ។",
+    },
+    "registry.promo.cta": { en: "Open Village Registry", km: "បើកបញ្ជីភូមិ" },
+    "registry.promo.marked": { en: "villages marked so far", km: "ភូមិបានគូសសម្គាល់រហូតមកដល់ពេលនេះ" },
+    "registry.picker.sub": {
+      en: "Choose your province to see every district, commune and village in it — and mark where churches already exist.",
+      km: "ជ្រើសរើសខេត្តរបស់អ្នក ដើម្បីមើលស្រុក ឃុំ និងភូមិទាំងអស់ក្នុងនោះ — ហើយគូសសម្គាល់កន្លែងដែលមានក្រុមជំនុំរួចហើយ។",
+    },
+    "registry.picker.nationwide": { en: "across all 25 provinces", km: "ទូទាំង ២៥ ខេត្ត" },
+    "registry.backToPicker": { en: "All provinces", km: "ខេត្តទាំងអស់" },
+
     "hero.figure.reported": { en: "reported so far, of a 10% goal", km: "បានរាយការណ៍មកទល់ពេលនេះ ក្នុងគោលដៅ ១០%" },
     "hero.figure.yearsLeft": { en: "years left", km: "ឆ្នាំទៀតទេ" },
     "hero.figure.noData": { en: "No provinces have reported yet", km: "មិនទាន់មានខេត្តណារាយការណ៍នៅឡើយទេ" },
     "hero.figure.yearsLeftToGoal": { en: "years left to reach the goal", km: "ឆ្នាំទៀត ដើម្បីទៅដល់គោលដៅ" },
 
     "stat.reportingProvinces": { en: "Reporting Provinces", km: "ខេត្តដែលបានរាយការណ៍" },
-    "stat.totalPopulation": { en: "Total Population Reported", km: "ចំនួនប្រជាជនសរុបដែលបានរាយការណ៍" },
-    "stat.totalPopulation.foot": { en: "across reporting provinces", km: "គិតចាប់ពីខេត្តដែលបានរាយការណ៍" },
-    "stat.attendance": { en: "Christians Attending Sunday", km: "អ្នកជឿចូលរួមថ្ងៃអាទិត្យ" },
-    "stat.attendance.foot": { en: "self-reported by pastors", km: "រាយការណ៍ដោយខ្លួនគ្រូគង្វាល" },
+    "stat.totalPopulation": { en: "Population Confirmed", km: "ប្រជាជនបានបញ្ជាក់" },
+    "stat.totalPopulation.foot": { en: "in provinces that have reported", km: "ក្នុងខេត្តដែលបានរាយការណ៍" },
+    "stat.attendance": { en: "Attendance Confirmed", km: "អ្នកចូលរួមបានបញ្ជាក់" },
+    "stat.attendance.foot": { en: "counted by pastors, not estimated", km: "រាប់ដោយគ្រូគង្វាល មិនមែនប៉ាន់ស្មាន" },
     "stat.villagesWithChurch": { en: "Villages With a Church", km: "ភូមិដែលមានក្រុមជំនុំ" },
     "stat.villagesWithChurch.foot": { en: "of reporting villages", km: "នៃភូមិដែលបានរាយការណ៍" },
 

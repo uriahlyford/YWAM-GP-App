@@ -12,6 +12,7 @@
     loadError: null,
     villageHierarchy: {}, // provinceId -> {districts, villageCount, communeCount, districtCount}
     villageStatus: {}, // provinceId -> { [villageCode]: {hasChurch, note} }
+    registrySummary: null, // provinceId -> marked-village count (lightweight, all provinces)
   };
 
   var charts = {}; // keep Chart.js instances so we can destroy before re-render
@@ -38,6 +39,7 @@
     document.getElementById("brand-title").textContent = t("app.title");
     document.getElementById("brand-sub").textContent = t("app.subtitle");
     document.getElementById("tab-dashboard").textContent = t("nav.dashboard");
+    document.getElementById("tab-registry").textContent = t("nav.registry");
     document.getElementById("tab-entry").textContent = t("nav.entry");
     document.getElementById("footer-text").textContent = t("footer.text");
     document.title = t("app.title") + " — Cambodia Church Growth Tracker";
@@ -47,14 +49,29 @@
     });
   }
 
-  function setView(view, provinceId) {
+  // Sub-views highlight the top-level tab they belong to.
+  var TAB_FOR_VIEW = {
+    dashboard: "dashboard",
+    province: "dashboard",
+    "registry-picker": "registry-picker",
+    registry: "registry-picker",
+    entry: "entry",
+  };
+
+  function setView(view, provinceId, from) {
     state.view = view;
     state.selectedProvinceId = provinceId || null;
+    if (from) state.registryFrom = from;
+    var activeTab = TAB_FOR_VIEW[view] || "dashboard";
     Array.prototype.forEach.call(tabsEl.querySelectorAll(".tab"), function (t) {
-      t.classList.toggle("active", t.getAttribute("data-view") === view);
+      t.classList.toggle("active", t.getAttribute("data-view") === activeTab);
     });
     render();
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function registryBackLabel(meta) {
+    return state.registryFrom === "picker" ? t("registry.backToPicker") : provinceName(meta);
   }
 
   function villagesHaveChurchLabel(count) {
@@ -161,7 +178,7 @@
     state.loading = true;
     state.loadError = null;
     render();
-    await loadChurchCounts();
+    await Promise.all([loadChurchCounts(), loadRegistrySummary()]);
     try {
       var res = await fetch("/api/entries");
       if (!res.ok) throw new Error("Server returned " + res.status);
@@ -196,14 +213,44 @@
     return data;
   }
 
-  function registryChurchCount(provinceId) {
-    var status = state.villageStatus[provinceId];
-    if (!status) return null;
-    var n = 0;
-    Object.keys(status).forEach(function (code) {
-      if (status[code] && status[code].hasChurch) n++;
+  /** Villages marked as having a church, across every province whose status we've loaded. */
+  function nationalRegistryTotals() {
+    var marked = 0;
+    var total = 0;
+    window.PROVINCES.forEach(function (meta) {
+      total += meta.referenceVillages;
+      var n = registryChurchCount(meta.id);
+      if (n !== null) marked += n;
     });
-    return n;
+    return { marked: marked, total: total };
+  }
+
+  function registryChurchCount(provinceId) {
+    // Prefer the fully-loaded status map (freshest — reflects unsaved-then-saved ticks),
+    // and fall back to the lightweight national summary.
+    var status = state.villageStatus[provinceId];
+    if (status) {
+      var n = 0;
+      Object.keys(status).forEach(function (code) {
+        if (status[code] && status[code].hasChurch) n++;
+      });
+      return n;
+    }
+    if (state.registrySummary && typeof state.registrySummary[provinceId] === "number") {
+      return state.registrySummary[provinceId];
+    }
+    return null;
+  }
+
+  async function loadRegistrySummary() {
+    try {
+      var res = await fetch("/api/villages?summary=1");
+      if (!res.ok) return;
+      var data = await res.json();
+      state.registrySummary = data.counts || {};
+    } catch (e) {
+      state.registrySummary = {};
+    }
   }
 
   function render() {
@@ -228,6 +275,8 @@
       renderEntry();
     } else if (state.view === "province") {
       renderProvinceDetail(state.selectedProvinceId);
+    } else if (state.view === "registry-picker") {
+      renderRegistryPicker();
     } else if (state.view === "registry") {
       renderRegistry(state.selectedProvinceId);
     } else {
@@ -242,6 +291,46 @@
   }
 
   // ---------- Dashboard ----------
+
+  /**
+   * The best current picture of the whole country.
+   *
+   * Provinces a pastor has confirmed use their real reported numbers; the rest fall back
+   * to the research estimate. Both are expressed against Cambodia's full population, so
+   * `confirmedPercent` and `blendedPercent` sit on the same scale and the progress meter
+   * can show confirmed progress growing inside the estimated total.
+   */
+  function computeNationalPicture() {
+    var nationalPop = 0,
+      confirmedChristians = 0,
+      estimatedChristians = 0,
+      confirmedProvinces = 0;
+
+    window.PROVINCES.forEach(function (meta) {
+      var rec = getProvinceRecord(meta.id);
+      var latest = rec ? latestOf(rec) : null;
+      if (latest) {
+        confirmedProvinces++;
+        nationalPop += latest.population || meta.referencePopulation;
+        confirmedChristians += latest.sundayAttendance || 0;
+      } else {
+        var est = estimateFor(meta.id);
+        nationalPop += meta.referencePopulation;
+        estimatedChristians += est ? est.estimatedAttendance : 0;
+      }
+    });
+
+    var totalChristians = confirmedChristians + estimatedChristians;
+    return {
+      nationalPop: nationalPop,
+      confirmedChristians: confirmedChristians,
+      estimatedChristians: estimatedChristians,
+      totalChristians: totalChristians,
+      confirmedProvinces: confirmedProvinces,
+      blendedPercent: nationalPop ? (totalChristians / nationalPop) * 100 : null,
+      confirmedPercent: nationalPop ? (confirmedChristians / nationalPop) * 100 : null,
+    };
+  }
 
   function computeNationalTotals() {
     var totalPop = 0,
@@ -335,54 +424,81 @@
       })
       .join("");
 
+    var picture = computeNationalPicture();
+    var goalPercent = window.GOAL.targetPercent;
+    var estWidth = picture.blendedPercent !== null ? Math.min(100, (picture.blendedPercent / goalPercent) * 100) : 0;
+    var confWidth = picture.confirmedPercent !== null ? Math.min(100, (picture.confirmedPercent / goalPercent) * 100) : 0;
+    var registryTotals = nationalRegistryTotals();
+
     appEl.innerHTML =
       '<div class="hero">' +
       '<div class="hero-eyebrow">' + escapeHtml(t("hero.eyebrow")) + "</div>" +
       '<h1 class="hero-title">' + escapeHtml(t("hero.title")) + "</h1>" +
       '<p class="hero-sub">' + escapeHtml(t("hero.sub")) + "</p>" +
-      '<div class="hero-figure">' +
-      (totals.percentChristian !== null
-        ? '<span class="big">' + fmtPct(totals.percentChristian) + '</span><span class="of">' + escapeHtml(t("hero.figure.reported")) + " &middot; " + yearsLeft + " " + escapeHtml(t("hero.figure.yearsLeft")) + "</span>"
-        : '<span class="of">' + escapeHtml(t("hero.figure.noData")) + " &middot; " + yearsLeft + " " + escapeHtml(t("hero.figure.yearsLeftToGoal")) + "</span>") +
+      '<div class="hero-figures">' +
+      '<div class="hero-figure-item">' +
+      '<span class="hero-figure-value">' + fmtPct(picture.blendedPercent) + "</span>" +
+      '<span class="hero-figure-label">' + escapeHtml(t("hero.figures.following")) + "</span>" +
       "</div>" +
-      '<div class="pitch-strip">' +
-      '<span class="pitch-chip">🌐 ' + escapeHtml(t("pitch.bilingual")) + '</span>' +
-      '<span class="pitch-chip">🗺️ ' + escapeHtml(t("pitch.villages")) + '</span>' +
-      '<span class="pitch-chip">📡 ' + escapeHtml(t("pitch.together")) + '</span>' +
+      '<div class="hero-figure-item">' +
+      '<span class="hero-figure-value neutral">' + fmtNum(picture.totalChristians) + "</span>" +
+      '<span class="hero-figure-label">' + escapeHtml(t("hero.figures.people")) + "</span>" +
+      "</div>" +
+      '<div class="hero-figure-item">' +
+      '<span class="hero-figure-value neutral">' + fmtNum(picture.nationalPop) + "</span>" +
+      '<span class="hero-figure-label">' + escapeHtml(t("hero.figures.population")) + "</span>" +
+      "</div>" +
+      '<div class="hero-figure-item">' +
+      '<span class="hero-figure-value neutral">' + yearsLeft + "</span>" +
+      '<span class="hero-figure-label">' + escapeHtml(t("hero.figures.yearsLeft")) + "</span>" +
       "</div>" +
       "</div>" +
-      '<div class="grid stats">' +
-      statCard("⛪", t("stat.reportingProvinces"), rows.filter(function (r) { return r.latest; }).length + " / " + window.PROVINCES.length, "") +
-      statCard("👥", t("stat.totalPopulation"), fmtNum(totals.totalPop), t("stat.totalPopulation.foot")) +
-      statCard("🙏", t("stat.attendance"), fmtNum(totals.totalChristians), t("stat.attendance.foot")) +
-      statCard("🏘️", t("stat.villagesWithChurch"), (totals.totalVillages ? totals.totalVillagesWithChurches + " / " + totals.totalVillages : "—"), fmtPct(totals.percentVillagesWithChurches, 1) + " " + t("stat.villagesWithChurch.foot")) +
       "</div>" +
       '<div class="card goal-card">' +
-      '<div class="goal-row"><h3>' + escapeHtml(t("goal.title")) + '</h3><span class="goal-pct">' +
-      (totals.percentChristian !== null ? fmtPct(totals.percentChristian) : escapeHtml(t("goal.noData"))) +
-      "</span></div>" +
+      '<div class="goal-row"><div><h3>' + escapeHtml(t("goal.title")) + "</h3>" +
+      '<div class="goal-sub">' + escapeHtml(t("goal.labelTarget")) + "</div></div>" +
+      '<span class="goal-pct">' + fmtPct(picture.blendedPercent) + "</span></div>" +
       '<div class="progress-track">' +
+      '<div class="progress-estimated" style="width:' + estWidth + '%"></div>' +
+      '<div class="progress-confirmed" style="width:' + confWidth + '%"></div>' +
       '<div class="progress-ticks">' +
       [20, 40, 60, 80].map(function (p) { return '<span style="left:' + p + '%"></span>'; }).join("") +
       "</div>" +
-      '<div class="progress-fill" style="width:' + progressToGoal + '%"></div>' +
-      '<div class="progress-target-marker" style="left:100%"></div>' +
       "</div>" +
       '<div class="progress-labels">' +
       [0, 2, 4, 6, 8, 10].map(function (p) { return "<span>" + p + "%</span>"; }).join("") +
       "</div>" +
-      '<div class="progress-caption">' + escapeHtml(t("goal.labelTarget")) + "</div>" +
-      (totals.percentChristian === null
-        ? '<p class="stat-foot" style="margin-top:12px">' + escapeHtml(t("goal.emptyNote")) + "</p>"
-        : "") +
+      '<div class="progress-legend">' +
+      '<span class="legend-item"><span class="legend-swatch confirmed"></span>' +
+      escapeHtml(t("goal.legend.confirmed")) + ' <span class="legend-value">' + fmtPct(picture.confirmedPercent) + " · " + fmtNum(picture.confirmedChristians) + "</span></span>" +
+      '<span class="legend-item"><span class="legend-swatch estimated"></span>' +
+      escapeHtml(t("goal.legend.estimated")) + ' <span class="legend-value">' + fmtPct(picture.blendedPercent) + " · " + fmtNum(picture.totalChristians) + "</span></span>" +
+      "</div>" +
       (window.NATIONAL_ESTIMATE
-        ? '<div class="research-estimate-note"><strong>' +
-          fmtPct(window.NATIONAL_ESTIMATE.percentChristian) +
-          "</strong> " + escapeHtml(t("goal.researchEstimate")) + " " +
+        ? '<div class="research-estimate-note">' +
+          escapeHtml(t("goal.methodNote")) + " " +
+          "<strong>" + fmtPct(window.NATIONAL_ESTIMATE.percentChristian) + "</strong> " +
+          escapeHtml(t("goal.researchEstimate")) + " " +
           escapeHtml(window.NATIONAL_ESTIMATE.source) + " (" + window.NATIONAL_ESTIMATE.asOfYear + "). " +
           escapeHtml(t("goal.governmentFigure")) + " " + fmtPct(window.NATIONAL_ESTIMATE.governmentPercent) + "." +
           "</div>"
         : "") +
+      "</div>" +
+      '<div class="registry-promo">' +
+      '<div class="registry-promo-body">' +
+      "<h3>🗺️ " + escapeHtml(t("registry.promo.title")) + "</h3>" +
+      "<p>" + escapeHtml(t("registry.promo.body")) + "</p>" +
+      '<div class="registry-promo-stat">' +
+      fmtNum(registryTotals.marked) + " " + escapeHtml(t("registry.of")) + " " + fmtNum(registryTotals.total) + " " + escapeHtml(t("registry.promo.marked")) +
+      "</div>" +
+      "</div>" +
+      '<button class="pill-link" id="promo-registry">' + escapeHtml(t("registry.promo.cta")) + " &rarr;</button>" +
+      "</div>" +
+      '<div class="grid stats" style="margin-top:16px">' +
+      statCard("⛪", t("stat.reportingProvinces"), picture.confirmedProvinces + " / " + window.PROVINCES.length, t("stat.reportingProvinces.foot")) +
+      statCard("👥", t("stat.totalPopulation"), fmtNum(totals.totalPop), t("stat.totalPopulation.foot")) +
+      statCard("🙏", t("stat.attendance"), fmtNum(totals.totalChristians), t("stat.attendance.foot")) +
+      statCard("🏘️", t("stat.villagesWithChurch"), (totals.totalVillages ? totals.totalVillagesWithChurches + " / " + totals.totalVillages : "—"), fmtPct(totals.percentVillagesWithChurches, 1) + " " + t("stat.villagesWithChurch.foot")) +
       "</div>" +
       '<div class="card" style="margin-top:20px">' +
       '<div class="section-title">' + escapeHtml(t("chart.title")) + '</div>' +
@@ -406,7 +522,57 @@
       });
     });
 
+    document.getElementById("promo-registry").addEventListener("click", function () {
+      setView("registry-picker");
+    });
+
     renderNationalChart();
+  }
+
+  // ---------- Village Registry: province picker ----------
+
+  function renderRegistryPicker() {
+    var cards = window.PROVINCES.slice()
+      .sort(function (a, b) { return provinceName(a).localeCompare(provinceName(b)); })
+      .map(function (meta) {
+        var marked = registryChurchCount(meta.id);
+        var total = meta.referenceVillages;
+        var pct = marked !== null && total ? (marked / total) * 100 : 0;
+        return (
+          '<button class="picker-card" data-province="' + meta.id + '">' +
+          '<span class="picker-name">' + escapeHtml(provinceName(meta)) + "</span>" +
+          '<span class="picker-bar"><span style="width:' + Math.min(100, pct) + '%"></span></span>' +
+          '<span class="picker-meta">' +
+          (marked !== null ? fmtNum(marked) : "0") + " " + escapeHtml(t("registry.of")) + " " + fmtNum(total) + " " + escapeHtml(t("registry.villages")) +
+          "</span>" +
+          "</button>"
+        );
+      })
+      .join("");
+
+    var totals = nationalRegistryTotals();
+
+    appEl.innerHTML =
+      '<div class="card">' +
+      '<div class="section-title">🗺️ ' + escapeHtml(t("registry.title")) + "</div>" +
+      '<div class="section-sub">' + escapeHtml(t("registry.picker.sub")) + "</div>" +
+      '<div class="registry-summary-bar">' +
+      "<div>" +
+      '<div class="registry-summary-figure">' +
+      fmtNum(totals.marked) + " " + escapeHtml(t("registry.of")) + " " + fmtNum(totals.total) + " " + escapeHtml(t("registry.summary")) +
+      "</div>" +
+      '<div class="stat-foot">' + escapeHtml(t("registry.picker.nationwide")) + "</div>" +
+      "</div>" +
+      "</div>" +
+      '<div class="picker-grid">' + cards + "</div>" +
+      '<p class="muted" style="margin-top:16px;font-size:0.78rem">' + escapeHtml(t("registry.dataSource")) + "</p>" +
+      "</div>";
+
+    Array.prototype.forEach.call(appEl.querySelectorAll(".picker-card"), function (btn) {
+      btn.addEventListener("click", function () {
+        setView("registry", btn.getAttribute("data-province"), "picker");
+      });
+    });
   }
 
   function statCard(icon, label, value, foot) {
@@ -631,7 +797,7 @@
       setView("entry", id);
     });
     document.getElementById("open-registry").addEventListener("click", function () {
-      setView("registry", id);
+      setView("registry", id, "province");
     });
 
     if (history.length) renderProvinceChart(history);
@@ -883,7 +1049,7 @@
         if (link) {
           link.addEventListener("click", function (e) {
             e.preventDefault();
-            setView("registry", meta.id);
+            setView("registry", meta.id, "province");
           });
         }
       });
@@ -1011,10 +1177,10 @@
     }
 
     appEl.innerHTML =
-      '<div class="back-link"><button class="link" id="back-to-province">&larr; ' + escapeHtml(provinceName(meta)) + '</button></div>' +
+      '<div class="back-link"><button class="link" id="back-to-province">&larr; ' + escapeHtml(registryBackLabel(meta)) + '</button></div>' +
       '<div class="card"><div class="loading">' + escapeHtml(t("registry.loading")) + '</div></div>';
     document.getElementById("back-to-province").addEventListener("click", function () {
-      setView("province", provinceId);
+      setView(state.registryFrom === "picker" ? "registry-picker" : "province", provinceId);
     });
 
     var hierarchy, status;
@@ -1098,7 +1264,7 @@
     var churchCount = registryChurchCount(provinceId) || 0;
 
     appEl.innerHTML =
-      '<div class="back-link"><button class="link" id="back-to-province">&larr; ' + escapeHtml(provinceName(meta)) + '</button></div>' +
+      '<div class="back-link"><button class="link" id="back-to-province">&larr; ' + escapeHtml(registryBackLabel(meta)) + '</button></div>' +
       '<div class="card">' +
       '<div class="section-title">' + escapeHtml(t("registry.title")) + " — " + escapeHtml(provinceName(meta)) + '</div>' +
       '<div class="section-sub">' + escapeHtml(t("registry.sub")) + '</div>' +
@@ -1117,7 +1283,7 @@
       "</div>";
 
     document.getElementById("back-to-province").addEventListener("click", function () {
-      setView("province", provinceId);
+      setView(state.registryFrom === "picker" ? "registry-picker" : "province", provinceId);
     });
 
     var treeEl = document.getElementById("registry-tree");
