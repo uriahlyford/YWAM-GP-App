@@ -110,10 +110,44 @@ agree they are far above average.
 
 If you can get real per-province numbers later, just edit that file — every
 seeded value is replaced automatically the moment a pastor submits a real
-report. `cambodiachurches.org` is the most promising lead: a
-province/district/commune-browsable directory of evangelical churches derived
-from Mission Kampuchea 2021 data, using the same NCDD gazetteer this app
-already uses. It was unreachable from the build environment.
+report.
+
+### Importing the national church directory
+
+`cambodiachurches.org` is the best available source of real per-province
+numbers: a province → district → commune browsable directory of evangelical
+churches, derived from Mission Kampuchea 2021 data and built on the **same
+NCDD gazetteer this app already uses**. That shared geography is what makes an
+automated import practical.
+
+`scripts/import-churches.mjs` does it in three verifiable steps:
+
+```
+node scripts/import-churches.mjs fetch              # download + cache the pages
+node scripts/import-churches.mjs inspect kampot     # eyeball one cached page
+node scripts/import-churches.mjs parse --dry-run --verbose
+node scripts/import-churches.mjs parse              # writes public/data/church-counts.js
+```
+
+Rather than guessing at their HTML structure, the parser uses the real district
+and commune names already in `public/data/villages/*.json` as anchors and reads
+the number next to each. It deliberately takes the **first** occurrence of a
+name: districts frequently contain a commune of the same name (Banteay Meas,
+Dang Tong, Chhuk…) whose smaller number would otherwise win. `--verbose` prints
+every extracted figure and flags each ambiguous match so you can check the work,
+and `parse` refuses to write at all if under half the districts matched.
+
+The importer is polite by design — it checks `robots.txt`, identifies itself,
+waits 1.5s between requests, and caches so re-runs don't re-hit the site.
+**Please ask before scraping.** The Evangelical Fellowship of Cambodia
+(efc.org.kh) and the MK2021 team are the people behind this data; requesting the
+underlying dataset directly is faster, more accurate and more respectful. Treat
+the script as the fallback.
+
+Once `public/data/church-counts.js` exists the app picks it up automatically —
+a "Churches in Directory" figure on each province, and a per-commune badge in
+the Village Registry showing how many churches are already known there, so
+pastors can see where to start. Until then it's a clean no-op.
 
 ## Language
 

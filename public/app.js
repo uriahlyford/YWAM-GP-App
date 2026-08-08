@@ -123,10 +123,45 @@
     });
   }
 
+  // Optional: per-province church counts imported from the cambodiachurches.org directory
+  // via scripts/import-churches.mjs. Absent until someone runs that importer from an
+  // unblocked network, so everything here degrades to a clean no-op.
+  function loadChurchCounts() {
+    return new Promise(function (resolve) {
+      if (window.CHURCH_COUNTS) return resolve();
+      var s = document.createElement("script");
+      s.src = "/data/church-counts.js";
+      s.onload = resolve;
+      s.onerror = resolve; // not imported yet — expected
+      document.head.appendChild(s);
+    });
+  }
+
+  function churchCountFor(provinceId) {
+    var c = window.CHURCH_COUNTS;
+    return c && c[provinceId] && typeof c[provinceId].total === "number" ? c[provinceId].total : null;
+  }
+
+  // Small inline hint on a commune: "directory lists N here". Helps a pastor see where
+  // churches are already known to exist before they start ticking villages.
+  function directoryHint(provinceId, communeCode) {
+    var n = communeChurchCount(provinceId, communeCode);
+    if (n === null || n <= 0) return "";
+    return ' <span class="directory-hint" title="' + escapeHtml(t("registry.directoryTitle")) + '">' + n + " 📖</span>";
+  }
+
+  function communeChurchCount(provinceId, communeCode) {
+    var c = window.CHURCH_COUNTS;
+    if (!c || !c[provinceId] || !c[provinceId].communes) return null;
+    var n = c[provinceId].communes[communeCode];
+    return typeof n === "number" ? n : null;
+  }
+
   async function loadData() {
     state.loading = true;
     state.loadError = null;
     render();
+    await loadChurchCounts();
     try {
       var res = await fetch("/api/entries");
       if (!res.ok) throw new Error("Server returned " + res.status);
@@ -561,6 +596,9 @@
       statCard("🙏", t("detail.attendance"), latest ? fmtNum(latest.sundayAttendance) : "—", fmtPct(pct)) +
       statCard("🏘️", t("detail.villagesWithChurch"), latest ? latest.villagesWithChurches + " / " + latest.totalVillages : "—", fmtPct(churchPct, 0)) +
       statCard("📋", t("detail.reportsSubmitted"), history.length, history.length ? t("detail.mostRecent") + ": " + fmtDate(latest.date) : "") +
+      (churchCountFor(id) !== null
+        ? statCard("📖", t("detail.directoryChurches"), fmtNum(churchCountFor(id)), t("detail.directorySource"))
+        : "") +
       "</div>" +
       '<div class="two-panel" style="margin-top:20px">' +
       '<div class="card">' +
@@ -1029,7 +1067,9 @@
             .join("");
           return (
             '<details class="registry-commune"><summary>' +
-            "<span>" + escapeHtml(lang === "km" ? c.khmer : c.latin) + '</span><span class="count">' +
+            "<span>" + escapeHtml(lang === "km" ? c.khmer : c.latin) +
+            (directoryHint(provinceId, c.code) || "") +
+            '</span><span class="count">' +
             churchCount +
             " / " +
             c.villages.length +

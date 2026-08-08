@@ -669,6 +669,20 @@ button.link {
   gap: 10px;
 }
 .registry-commune > summary::-webkit-details-marker { display: none; }
+.directory-hint {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(167, 139, 250, 0.14);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  color: var(--violet);
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  cursor: help;
+}
+
 .registry-commune .count { color: var(--ink-faint); font-weight: 500; font-size: 0.76rem; font-family: var(--font-mono); }
 
 .village-row {
