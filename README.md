@@ -112,6 +112,42 @@ If you can get real per-province numbers later, just edit that file — every
 seeded value is replaced automatically the moment a pastor submits a real
 report.
 
+### Map data: OpenStreetMap, not Google Maps
+
+Google Maps is the obvious place to look for church locations, but its terms
+rule out the use this app needs. Google Maps Platform ToS 3.2.3(b) forbids
+customers to "pre-fetch, index, store, reshare or rehost Google Maps Content"
+and names "copy and save business names, addresses" explicitly. Only the opaque
+`place_id` may be stored indefinitely; coordinates may be cached for 30 days.
+Shipping a permanent `church-counts.js` built from Google Places would breach
+that, so the automated import uses **OpenStreetMap** instead — ODbL licensed,
+free to store and redistribute with attribution, no API key, and it carries
+Khmer names, which match the gazetteer far more reliably than Latin
+transliterations.
+
+```
+npm run osm:fetch      # one Overpass query per province
+npm run osm:preview    # shows what it matched, writes nothing
+npm run osm:import     # merges into public/data/church-counts.js
+```
+
+It fetches Christian places of worship and settlement nodes per province, snaps
+each church to the nearest settlement within 4km, then matches that settlement
+name to a gazetteer village.
+
+**Province scoping is the whole trick.** Cambodian village names repeat badly:
+15% occur in more than one province, and ថ្មី ("new") appears in 24 of the 25.
+Matched nationwide, one in six churches would be ambiguous. Scoped to a single
+province, 90.7% of names are unique — and the ~9% still ambiguous are skipped
+rather than guessed at, because a church placed in the wrong village is worse
+than one left unplaced. Results merge with the cambodiachurches.org import
+rather than replacing it, so the two sources combine.
+
+Google Maps still appears in the app in the one way its licence clearly allows:
+every commune in the Village Registry has a **search Maps** link that opens
+Google Maps searching for churches there — useful for checking a village you are
+unsure about, with nothing stored.
+
 ### Importing the national church directory
 
 `cambodiachurches.org` is the best available source of real per-province

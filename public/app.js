@@ -177,6 +177,21 @@
     return typeof n === "number" ? n : null;
   }
 
+  /**
+   * A Google Maps search link for one commune.
+   *
+   * This is the one use of Google Maps the licence clearly allows: sending a person to Google
+   * Maps to look something up. Bulk-importing Places results into this app would not be — their
+   * terms forbid storing place names and addresses — which is why the automated import uses
+   * OpenStreetMap instead.
+   */
+  function mapsSearchUrl(provinceMeta, districtLatin, communeLatin) {
+    var q = ["church", communeLatin, districtLatin, provinceMeta.name, "Cambodia"]
+      .filter(Boolean)
+      .join(" ");
+    return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+  }
+
   /** Village-level directory entry, if the deep import placed a church here. */
   function directoryVillage(provinceId, villageCode) {
     var c = window.CHURCH_COUNTS;
@@ -1640,6 +1655,9 @@
             "<span>" + escapeHtml(lang === "km" ? c.khmer : c.latin) +
             (directoryHint(provinceId, c.code) || "") +
             (pendingHere ? ' <span class="pending-tag">' + pendingHere + " " + escapeHtml(t("registry.pendingConfirm")) + "</span>" : "") +
+            ' <a class="maps-link" target="_blank" rel="noopener noreferrer" href="' +
+            escapeHtml(mapsSearchUrl(meta, d.latin, c.latin)) +
+            '" title="' + escapeHtml(t("registry.mapsSearch.title")) + '">' + escapeHtml(t("registry.mapsSearch")) + "</a>" +
             '</span><span class="count">' +
             churchCount +
             " / " +

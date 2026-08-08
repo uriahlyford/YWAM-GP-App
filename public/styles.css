@@ -673,6 +673,20 @@ button.link {
   font-size: 0.68rem;
   font-weight: 700;
 }
+.maps-link {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  color: var(--ink-dim);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.maps-link:hover { border-color: var(--accent); color: var(--accent); }
+
 .directory-explainer {
   margin: -6px 0 18px;
   font-size: 0.79rem;

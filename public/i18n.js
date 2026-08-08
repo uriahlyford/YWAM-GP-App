@@ -311,6 +311,11 @@
       en: "Villages marked \u201cfrom directory\u201d were filled in automatically from the national church directory, so nobody has to re-enter what is already known. They count toward the totals, but are not treated as confirmed until a pastor accepts or corrects them.",
       km: "ភូមិដែលសម្គាល់ថា \u201cពីបញ្ជី\u201d ត្រូវបានបំពេញដោយស្វ័យប្រវត្តិពីបញ្ជីក្រុមជំនុំថ្នាក់ជាតិ ដូច្នេះគ្មាននរណាត្រូវបញ្ចូលឡើងវិញនូវអ្វីដែលដឹងរួចនោះទេ។ ពួកវារាប់បញ្ចូលក្នុងចំនួនសរុប ប៉ុន្តែមិនត្រូវបានចាត់ទុកថាបានបញ្ជាក់ទេ រហូតដល់គ្រូគង្វាលទទួលយក ឬកែតម្រូវ។",
     },
+    "registry.mapsSearch": { en: "search Maps", km: "ស្វែងរកលើផែនទី" },
+    "registry.mapsSearch.title": {
+      en: "Open Google Maps and search for churches in this commune — useful for checking a village you are unsure about.",
+      km: "បើក Google Maps ហើយស្វែងរកក្រុមជំនុំក្នុងឃុំនេះ — មានប្រយោជន៍សម្រាប់ពិនិត្យភូមិដែលអ្នកមិនប្រាកដ។",
+    },
     "registry.saved": { en: "Saved", km: "បានរក្សាទុក" },
 
     "pitch.bilingual": { en: "Bilingual — English & Khmer", km: "ភាសាពីរ — អង់គ្លេស និងខ្មែរ" },
