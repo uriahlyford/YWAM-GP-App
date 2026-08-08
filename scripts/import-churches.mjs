@@ -144,6 +144,36 @@ async function cmdFetch() {
   console.log("Next: node scripts/import-churches.mjs parse --dry-run");
 }
 
+// ---------------------------------------------------------------- urls / status
+
+function cmdUrls() {
+  console.log("Open each of these and save the page as HTML into:");
+  console.log("  " + path.relative(ROOT, CACHE_DIR) + "/<province-id>.html\n");
+  for (const id of provinceIds()) {
+    const slug = SLUG_CANDIDATES[id][0];
+    console.log(`${id}.html`.padEnd(24) + BASE + encodeURIComponent(slug));
+  }
+  console.log("\nThe filename must be the province id on the left — that's how the");
+  console.log("parser knows which district and commune names to look for.");
+}
+
+function cmdStatus() {
+  const have = [];
+  const missing = [];
+  for (const id of provinceIds()) {
+    (fs.existsSync(cachePath(id)) ? have : missing).push(id);
+  }
+  console.log(`Saved: ${have.length}/25 provinces`);
+  if (have.length) console.log("  " + have.join(", "));
+  if (missing.length) {
+    console.log(`\nStill needed (${missing.length}):`);
+    console.log("  " + missing.join(", "));
+    console.log("\nRun `node scripts/import-churches.mjs urls` for the exact links and filenames.");
+  } else {
+    console.log("\nAll 25 saved. Next: node scripts/import-churches.mjs parse --dry-run --verbose");
+  }
+}
+
 // ---------------------------------------------------------------- inspect
 
 function htmlToText(html) {
@@ -323,12 +353,23 @@ function cmdParse(dryRun, force, verbose) {
 
 const [cmd, ...rest] = process.argv.slice(2);
 if (cmd === "fetch") await cmdFetch();
+else if (cmd === "urls") cmdUrls();
+else if (cmd === "status") cmdStatus();
 else if (cmd === "inspect") cmdInspect(rest[0]);
 else if (cmd === "parse") cmdParse(rest.includes("--dry-run"), rest.includes("--force"), rest.includes("--verbose"));
 else {
   console.log("Vision 2033 — church directory importer\n");
-  console.log("  node scripts/import-churches.mjs fetch");
-  console.log("  node scripts/import-churches.mjs inspect <province-id>");
-  console.log("  node scripts/import-churches.mjs parse [--dry-run] [--verbose] [--force]\n");
-  console.log("Read the header comment before running fetch.");
+  console.log("Two ways in. Both end at the same `parse` step.\n");
+  console.log("  AUTOMATIC — the script downloads the pages itself:");
+  console.log("    node scripts/import-churches.mjs fetch");
+  console.log("    node scripts/import-churches.mjs parse --dry-run --verbose");
+  console.log("    node scripts/import-churches.mjs parse\n");
+  console.log("  MANUAL — if fetch is blocked, save the pages from your browser:");
+  console.log("    node scripts/import-churches.mjs urls      # links + filenames to save");
+  console.log("    node scripts/import-churches.mjs status    # what's saved, what's missing");
+  console.log("    node scripts/import-churches.mjs parse --dry-run --verbose\n");
+  console.log("  Other:");
+  console.log("    node scripts/import-churches.mjs inspect <province-id>\n");
+  console.log("Please read the header comment — and consider just asking EFC/MK2021");
+  console.log("for the underlying dataset before scraping their site.");
 }

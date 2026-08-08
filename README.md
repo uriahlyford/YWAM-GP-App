@@ -120,14 +120,32 @@ churches, derived from Mission Kampuchea 2021 data and built on the **same
 NCDD gazetteer this app already uses**. That shared geography is what makes an
 automated import practical.
 
-`scripts/import-churches.mjs` does it in three verifiable steps:
+`scripts/import-churches.mjs` handles it. You need Node 18+ and a clone of this
+repo; the script has no dependencies of its own, so no `npm install` is needed
+just to run it.
+
+**Route A — the script downloads the pages:**
 
 ```
-node scripts/import-churches.mjs fetch              # download + cache the pages
-node scripts/import-churches.mjs inspect kampot     # eyeball one cached page
-node scripts/import-churches.mjs parse --dry-run --verbose
-node scripts/import-churches.mjs parse              # writes public/data/church-counts.js
+npm run churches:fetch      # downloads + caches all 25 province pages
+npm run churches:preview    # shows every number it extracted, writes nothing
+npm run churches:import     # writes public/data/church-counts.js
 ```
+
+**Route B — save the pages from your browser** (if the site blocks the script,
+or you'd rather not have it hit their server):
+
+```
+npm run churches:urls       # prints the 25 links and the filename to save each as
+                            # ...save each page into scripts/.cache/churches/
+npm run churches:status     # shows which provinces you've saved and which are missing
+npm run churches:preview
+npm run churches:import
+```
+
+Both routes end at the same `parse` step, and partial imports are fine — save
+five provinces, import, add more later. `npm run churches:preview` never writes
+anything, so it's always safe to run first.
 
 Rather than guessing at their HTML structure, the parser uses the real district
 and commune names already in `public/data/villages/*.json` as anchors and reads
