@@ -177,6 +177,33 @@
     return typeof n === "number" ? n : null;
   }
 
+  /** Village-level directory entry, if the deep import placed a church here. */
+  function directoryVillage(provinceId, villageCode) {
+    var c = window.CHURCH_COUNTS;
+    if (!c || !c[provinceId] || !c[provinceId].villages) return null;
+    return c[provinceId].villages[villageCode] || null;
+  }
+
+  /**
+   * What a village row should show, merging two sources.
+   *
+   * A pastor's own entry always wins — including a deliberate "no church here", which must
+   * not be silently overwritten by directory data. Otherwise the directory pre-fills the row
+   * so nobody re-enters what is already publicly known, marked as unconfirmed until a pastor
+   * touches it.
+   */
+  function villageState(provinceId, villageCode, status) {
+    var own = status[villageCode];
+    if (own) {
+      return { hasChurch: !!own.hasChurch, note: own.note || "", source: "pastor" };
+    }
+    var dir = directoryVillage(provinceId, villageCode);
+    if (dir) {
+      return { hasChurch: true, note: dir.church || "", source: "directory" };
+    }
+    return { hasChurch: false, note: "", source: null };
+  }
+
   async function loadData() {
     state.loading = true;
     state.loadError = null;
@@ -228,19 +255,33 @@
     return { marked: marked, total: total };
   }
 
+  /** Villages the directory places a church in, that no pastor has ruled on yet. */
+  function directoryPendingCount(provinceId, status) {
+    var c = window.CHURCH_COUNTS;
+    if (!c || !c[provinceId] || !c[provinceId].villages) return 0;
+    var own = status || state.villageStatus[provinceId] || {};
+    return Object.keys(c[provinceId].villages).filter(function (code) {
+      return !own[code];
+    }).length;
+  }
+
   function registryChurchCount(provinceId) {
     // Prefer the fully-loaded status map (freshest — reflects unsaved-then-saved ticks),
-    // and fall back to the lightweight national summary.
+    // and fall back to the lightweight national summary. Directory-sourced villages count
+    // too: they are shown as marked in the registry, so the totals must agree.
     var status = state.villageStatus[provinceId];
     if (status) {
       var n = 0;
       Object.keys(status).forEach(function (code) {
         if (status[code] && status[code].hasChurch) n++;
       });
-      return n;
+      return n + directoryPendingCount(provinceId, status);
     }
-    if (state.registrySummary && typeof state.registrySummary[provinceId] === "number") {
-      return state.registrySummary[provinceId];
+    if (state.registrySummary) {
+      // A province with no saved entries still has directory pre-fills to count, so don't
+      // bail out just because the summary has no row for it.
+      var saved = typeof state.registrySummary[provinceId] === "number" ? state.registrySummary[provinceId] : 0;
+      return saved + directoryPendingCount(provinceId, {});
     }
     return null;
   }
@@ -1559,13 +1600,17 @@
       var communesHtml = d.communes
         .map(function (c) {
           var churchCount = c.villages.filter(function (v) {
-            return status[v.code] && status[v.code].hasChurch;
+            return villageState(provinceId, v.code, status).hasChurch;
+          }).length;
+          var pendingHere = c.villages.filter(function (v) {
+            return villageState(provinceId, v.code, status).source === "directory";
           }).length;
           var villagesHtml = c.villages
             .map(function (v) {
-              var st = status[v.code] || {};
+              var st = villageState(provinceId, v.code, status);
+              var fromDirectory = st.source === "directory";
               return (
-                '<div class="village-row" data-code="' +
+                '<div class="village-row' + (fromDirectory ? " from-directory" : "") + '" data-code="' +
                 v.code +
                 '" data-search="' +
                 escapeHtml((v.latin + " " + v.khmer + " " + c.latin + " " + c.khmer + " " + d.latin + " " + d.khmer).toLowerCase()) +
@@ -1577,7 +1622,9 @@
                 escapeHtml(v.latin) +
                 '<span class="khmer">' +
                 escapeHtml(v.khmer) +
-                "</span></span>" +
+                "</span>" +
+                (fromDirectory ? ' <span class="from-directory-tag" title="' + escapeHtml(t("registry.fromDirectory.title")) + '">' + escapeHtml(t("registry.fromDirectory")) + "</span>" : "") +
+                "</span>" +
                 '<input type="text" class="village-note v-note" placeholder="' +
                 escapeHtml(t("registry.notePlaceholder")) +
                 '" value="' +
@@ -1592,6 +1639,7 @@
             '<details class="registry-commune"><summary>' +
             "<span>" + escapeHtml(lang === "km" ? c.khmer : c.latin) +
             (directoryHint(provinceId, c.code) || "") +
+            (pendingHere ? ' <span class="pending-tag">' + pendingHere + " " + escapeHtml(t("registry.pendingConfirm")) + "</span>" : "") +
             '</span><span class="count">' +
             churchCount +
             " / " +
@@ -1603,7 +1651,7 @@
         })
         .join("");
       var dChurchCount = d.communes.reduce(function (sum, c) {
-        return sum + c.villages.filter(function (v) { return status[v.code] && status[v.code].hasChurch; }).length;
+        return sum + c.villages.filter(function (v) { return villageState(provinceId, v.code, status).hasChurch; }).length;
       }, 0);
       var dVillageCount = d.communes.reduce(function (sum, c) { return sum + c.villages.length; }, 0);
       return (
@@ -1619,6 +1667,7 @@
     }
 
     var churchCount = registryChurchCount(provinceId) || 0;
+    var pendingCount = directoryPendingCount(provinceId, status);
 
     appEl.innerHTML =
       '<div class="back-link"><button class="link" id="back-to-province">&larr; ' + escapeHtml(registryBackLabel(meta)) + '</button></div>' +
@@ -1628,7 +1677,14 @@
       '<div class="registry-summary-bar"><div><div class="registry-summary-figure" id="registry-summary-figure">' +
       churchCount +
       " " + escapeHtml(t("registry.of")) + " " + hierarchy.villageCount + " " + escapeHtml(villagesHaveChurchLabel(churchCount)) +
-      '</div><div class="stat-foot">' + hierarchy.districtCount + ' ' + escapeHtml(t("registry.district")).toLowerCase() + 's · ' + hierarchy.communeCount + ' ' + escapeHtml(t("registry.commune")).toLowerCase() + 's</div></div></div>' +
+      '</div><div class="stat-foot">' + hierarchy.districtCount + ' ' + escapeHtml(t("registry.district")).toLowerCase() + 's · ' + hierarchy.communeCount + ' ' + escapeHtml(t("registry.commune")).toLowerCase() + 's</div></div>' +
+      (pendingCount
+        ? '<button class="pill-link" id="confirm-directory">' + escapeHtml(t("registry.confirmAll")).replace("{n}", pendingCount) + "</button>"
+        : "") +
+      "</div>" +
+      (pendingCount
+        ? '<p class="directory-explainer">' + escapeHtml(t("registry.directoryExplainer")) + "</p>"
+        : "") +
       '<div class="registry-passcode-bar"><label for="registry-passcode">' + escapeHtml(t("registry.passcodeNeeded")) + '</label><input type="password" id="registry-passcode" value="' +
       escapeHtml(rememberedPasscode) +
       '"></div>' +
@@ -1710,6 +1766,44 @@
           saveState.textContent = "!";
           saveState.title = t("registry.saveError");
         });
+    }
+
+    var confirmBtn = document.getElementById("confirm-directory");
+    if (confirmBtn) {
+      confirmBtn.addEventListener("click", function () {
+        var dir = (window.CHURCH_COUNTS[provinceId] || {}).villages || {};
+        var entries = Object.keys(dir)
+          .filter(function (code) { return !status[code]; })
+          .map(function (code) { return { villageCode: code, hasChurch: true, note: dir[code].church || "" }; });
+        if (!entries.length) return;
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = t("registry.confirming");
+        fetch("/api/villages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provinceId: provinceId,
+            entries: entries,
+            passcode: passcodeInput.value,
+            updatedBy: remembered(REMEMBER_NAME_KEY),
+          }),
+        })
+          .then(function (res) {
+            if (!res.ok) return res.json().then(function (b) { throw new Error(b.error || "Save failed"); });
+            return res.json();
+          })
+          .then(function () {
+            entries.forEach(function (e) { status[e.villageCode] = { hasChurch: true, note: e.note }; });
+            state.villageStatus[provinceId] = status;
+            remember(REMEMBER_PASSCODE_KEY, passcodeInput.value);
+            render();
+          })
+          .catch(function () {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = t("registry.confirmAll").replace("{n}", entries.length);
+            alert(t("registry.saveError"));
+          });
+      });
     }
 
     document.getElementById("registry-search").addEventListener("input", function () {

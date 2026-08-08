@@ -299,6 +299,18 @@
     "registry.passcodeNeeded": { en: "Enter your team passcode to mark villages", km: "សូមបញ្ចូលលេខសម្ងាត់ក្រុមរបស់អ្នក ដើម្បីគូសសម្គាល់ភូមិ" },
     "registry.noResults": { en: "No villages match your search.", km: "គ្មានភូមិត្រូវនឹងការស្វែងរករបស់អ្នកទេ។" },
     "registry.dataSource": { en: "Village names from the official NCDD commune/village gazetteer.", km: "ឈ្មោះភូមិយកមកពីបញ្ជីឃុំ/ភូមិផ្លូវការរបស់ NCDD។" },
+    "registry.fromDirectory": { en: "from directory", km: "ពីបញ្ជី" },
+    "registry.fromDirectory.title": {
+      en: "Pre-filled from the national church directory. Leave it if correct, untick it if that directory is wrong, or edit the church name.",
+      km: "បំពេញជាមុនពីបញ្ជីក្រុមជំនុំថ្នាក់ជាតិ។ ទុកវាបើត្រឹមត្រូវ ដកសញ្ញាបើបញ្ជីនោះខុស ឬកែឈ្មោះក្រុមជំនុំ។",
+    },
+    "registry.pendingConfirm": { en: "to confirm", km: "ត្រូវបញ្ជាក់" },
+    "registry.confirmAll": { en: "Confirm all {n} from the directory", km: "បញ្ជាក់ទាំង {n} ពីបញ្ជី" },
+    "registry.confirming": { en: "Confirming…", km: "កំពុងបញ្ជាក់…" },
+    "registry.directoryExplainer": {
+      en: "Villages marked \u201cfrom directory\u201d were filled in automatically from the national church directory, so nobody has to re-enter what is already known. They count toward the totals, but are not treated as confirmed until a pastor accepts or corrects them.",
+      km: "ភូមិដែលសម្គាល់ថា \u201cពីបញ្ជី\u201d ត្រូវបានបំពេញដោយស្វ័យប្រវត្តិពីបញ្ជីក្រុមជំនុំថ្នាក់ជាតិ ដូច្នេះគ្មាននរណាត្រូវបញ្ចូលឡើងវិញនូវអ្វីដែលដឹងរួចនោះទេ។ ពួកវារាប់បញ្ចូលក្នុងចំនួនសរុប ប៉ុន្តែមិនត្រូវបានចាត់ទុកថាបានបញ្ជាក់ទេ រហូតដល់គ្រូគង្វាលទទួលយក ឬកែតម្រូវ។",
+    },
     "registry.saved": { en: "Saved", km: "បានរក្សាទុក" },
 
     "pitch.bilingual": { en: "Bilingual — English & Khmer", km: "ភាសាពីរ — អង់គ្លេស និងខ្មែរ" },

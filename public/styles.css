@@ -648,7 +648,37 @@ button.link {
   border-top: 1px solid var(--line);
   flex-wrap: wrap;
 }
+.village-row.from-directory { background: rgba(138, 109, 59, 0.045); }
 .village-row .v-name { flex: 1 1 210px; font-size: 0.88rem; }
+.from-directory-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--pending-soft);
+  border: 1px dashed var(--pending-line);
+  color: var(--pending);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: help;
+}
+.pending-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--pending-soft);
+  border: 1px solid var(--pending-line);
+  color: var(--pending);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.directory-explainer {
+  margin: -6px 0 18px;
+  font-size: 0.79rem;
+  color: var(--ink-dim);
+  line-height: 1.6;
+}
 .village-row .v-name .khmer { color: var(--ink-dim); font-size: 0.81rem; margin-left: 7px; }
 .village-toggle {
   display: flex; align-items: center; gap: 7px;

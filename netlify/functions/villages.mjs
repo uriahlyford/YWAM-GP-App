@@ -48,13 +48,39 @@ async function handlePost(s, req) {
   }
 
   const provinceId = String(body.provinceId || "").trim();
-  const villageCode = String(body.villageCode || "").trim();
-  if (!provinceId || !villageCode) {
-    return Response.json({ error: "Missing province or village." }, { status: 400 });
+  if (!provinceId) {
+    return Response.json({ error: "Missing province." }, { status: 400 });
   }
 
   const key = `village-status:${provinceId}`;
   const statuses = (await s.get(key, { type: "json" })) || {};
+
+  // Bulk confirm — used when a pastor accepts a batch of directory-sourced entries at once,
+  // rather than firing one request per village.
+  if (Array.isArray(body.entries)) {
+    if (body.entries.length > 5000) {
+      return Response.json({ error: "Too many entries in one request." }, { status: 400 });
+    }
+    let written = 0;
+    for (const e of body.entries) {
+      const code = String(e?.villageCode || "").trim();
+      if (!code) continue;
+      statuses[code] = {
+        hasChurch: Boolean(e.hasChurch),
+        note: String(e.note || "").slice(0, 300),
+        updatedBy: String(body.updatedBy || "").slice(0, 200),
+        updatedAt: new Date().toISOString(),
+      };
+      written++;
+    }
+    await s.setJSON(key, statuses);
+    return Response.json({ ok: true, written });
+  }
+
+  const villageCode = String(body.villageCode || "").trim();
+  if (!villageCode) {
+    return Response.json({ error: "Missing village." }, { status: 400 });
+  }
 
   const hasChurch = Boolean(body.hasChurch);
   const note = String(body.note || "").slice(0, 300);

@@ -144,6 +144,71 @@ async function cmdFetch() {
   console.log("Next: node scripts/import-churches.mjs parse --dry-run");
 }
 
+// ---------------------------------------------------------------- deep fetch (commune pages)
+
+function communeCachePath(provinceId, communeCode) {
+  return path.join(CACHE_DIR, "communes", provinceId, `${communeCode}.html`);
+}
+
+/**
+ * Crawl one page per commune. Their directory drills province → district → commune, and we
+ * already know every village inside each commune from the gazetteer — so a commune page plus
+ * that village list is enough to place churches at individual villages, which is what the
+ * Village Registry needs in order to arrive pre-filled.
+ *
+ * This is ~1,646 requests nationally. Slow and deliberate on purpose. Limit it with
+ * --province=<id> and it resumes from cache, so it can be run across several sittings.
+ */
+async function cmdFetchDeep(only) {
+  const targets = only ? [only] : provinceIds();
+  let fetched = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (const id of targets) {
+    if (!fs.existsSync(path.join(VILLAGE_DIR, `${id}.json`))) {
+      console.log(`✗ ${id} — unknown province id`);
+      continue;
+    }
+    const gaz = loadGazetteer(id);
+    const province = SLUG_CANDIDATES[id][0];
+    fs.mkdirSync(path.join(CACHE_DIR, "communes", id), { recursive: true });
+
+    const totalCommunes = gaz.districts.reduce((n, d) => n + d.communes.length, 0);
+    console.log(`\n${id} — ${totalCommunes} communes`);
+
+    for (const d of gaz.districts) {
+      for (const c of d.communes) {
+        const dest = communeCachePath(id, c.code);
+        if (fs.existsSync(dest)) {
+          skipped++;
+          continue;
+        }
+        const url =
+          BASE + encodeURIComponent(province) + "/" + encodeURIComponent(d.latin) + "/" + encodeURIComponent(c.latin);
+        try {
+          const res = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+          if (res.ok) {
+            fs.writeFileSync(dest, await res.text());
+            fetched++;
+            process.stdout.write(".");
+          } else {
+            failed++;
+            process.stdout.write("x");
+          }
+        } catch {
+          failed++;
+          process.stdout.write("x");
+        }
+        await sleep(DELAY_MS);
+      }
+    }
+  }
+
+  console.log(`\n\nfetched ${fetched}, already cached ${skipped}, failed ${failed}`);
+  console.log("Next: node scripts/import-churches.mjs parse --dry-run --verbose");
+}
+
 // ---------------------------------------------------------------- urls / status
 
 function cmdUrls() {
@@ -225,6 +290,15 @@ function countNear(text, name, windowChars = 60) {
   return { value: hits[0], occurrences: hits };
 }
 
+/** Best-effort church names from a commune page — used to pre-fill the note field. */
+function extractChurchNames(text) {
+  const out = new Set();
+  const re = /([A-Z][A-Za-z'\u2019.\-]*(?:\s+[A-Z][A-Za-z'\u2019.\-]*){0,4}\s+Church)\b/g;
+  let m;
+  while ((m = re.exec(text)) !== null) out.add(m[1].trim());
+  return Array.from(out);
+}
+
 function parseProvince(id) {
   if (!fs.existsSync(cachePath(id))) return null;
   const text = htmlToText(fs.readFileSync(cachePath(id), "utf8"));
@@ -232,9 +306,11 @@ function parseProvince(id) {
 
   const districts = {};
   const communes = {};
+  const villages = {};
   const detail = [];
   let matchedDistricts = 0;
   let matchedCommunes = 0;
+  let villagePages = 0;
 
   for (const d of gaz.districts) {
     const n = countNear(text, d.latin);
@@ -249,6 +325,28 @@ function parseProvince(id) {
         communes[c.code] = cn.value;
         matchedCommunes++;
       }
+
+      // If a commune page was crawled (fetch --deep), place churches at individual villages.
+      // Scoping the search to just this commune's ~9 villages keeps the name matching safe;
+      // matching village names against a whole-province page would produce false hits.
+      const cPath = communeCachePath(id, c.code);
+      if (fs.existsSync(cPath)) {
+        villagePages++;
+        const cText = htmlToText(fs.readFileSync(cPath, "utf8"));
+        const cLower = cText.toLowerCase();
+        const churchNames = extractChurchNames(cText);
+        for (const v of c.villages) {
+          if (!v.latin) continue;
+          const present = cLower.indexOf(v.latin.toLowerCase()) !== -1 || (v.khmer && cText.indexOf(v.khmer) !== -1);
+          if (present) {
+            villages[v.code] = {
+              // A single church name for the commune is safe to attribute; several are not,
+              // so leave the note blank and let the pastor fill it in.
+              church: churchNames.length === 1 ? churchNames[0] : "",
+            };
+          }
+        }
+      }
     }
   }
 
@@ -258,6 +356,8 @@ function parseProvince(id) {
     total: districtSum || null,
     districts,
     communes,
+    villages,
+    villagePages,
     detail,
     matchedDistricts,
     totalDistricts: gaz.districts.length,
@@ -278,14 +378,15 @@ function cmdParse(dryRun, force, verbose) {
     return;
   }
 
-  console.log("province".padEnd(19) + "districts".padEnd(12) + "communes".padEnd(12) + "churches");
-  console.log("-".repeat(56));
+  console.log("province".padEnd(19) + "districts".padEnd(12) + "communes".padEnd(12) + "churches".padEnd(11) + "villages");
+  console.log("-".repeat(70));
   parsed.forEach((p) => {
     console.log(
       p.id.padEnd(19) +
         `${p.matchedDistricts}/${p.totalDistricts}`.padEnd(12) +
         `${p.matchedCommunes}/${p.totalCommunes}`.padEnd(12) +
-        (p.total ?? "—")
+        String(p.total ?? "—").padEnd(11) +
+        (p.villagePages ? Object.keys(p.villages).length + " (from " + p.villagePages + " commune pages)" : "—")
     );
     if (verbose) {
       p.detail.forEach((d) => {
@@ -300,7 +401,7 @@ function cmdParse(dryRun, force, verbose) {
   const rate = totalMatched / totalPossible;
   const grand = parsed.reduce((a, p) => a + (p.total || 0), 0);
 
-  console.log("-".repeat(56));
+  console.log("-".repeat(70));
   console.log(`district match rate: ${(rate * 100).toFixed(0)}%   national total: ${grand} churches`);
   console.log(
     "\nSanity check: published national figures are ~1,609 churches (1,544 Protestant\n" +
@@ -325,6 +426,7 @@ function cmdParse(dryRun, force, verbose) {
       total: p.total,
       districts: p.districts,
       communes: p.communes,
+      villages: p.villages,
       coverage: { districts: `${p.matchedDistricts}/${p.totalDistricts}`, communes: `${p.matchedCommunes}/${p.totalCommunes}` },
     };
   });
@@ -352,7 +454,12 @@ function cmdParse(dryRun, force, verbose) {
 // ---------------------------------------------------------------- main
 
 const [cmd, ...rest] = process.argv.slice(2);
-if (cmd === "fetch") await cmdFetch();
+if (cmd === "fetch") {
+  const deep = rest.includes("--deep");
+  const provArg = rest.find((r) => r.startsWith("--province="));
+  if (deep) await cmdFetchDeep(provArg ? provArg.split("=")[1] : null);
+  else await cmdFetch();
+}
 else if (cmd === "urls") cmdUrls();
 else if (cmd === "status") cmdStatus();
 else if (cmd === "inspect") cmdInspect(rest[0]);

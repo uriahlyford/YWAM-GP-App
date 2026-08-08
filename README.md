@@ -147,6 +147,31 @@ Both routes end at the same `parse` step, and partial imports are fine — save
 five provinces, import, add more later. `npm run churches:preview` never writes
 anything, so it's always safe to run first.
 
+**Going one level deeper — pre-filling individual villages.** The province pages
+only give district and commune totals. To pre-fill the Village Registry itself,
+crawl the commune pages too:
+
+```
+node scripts/import-churches.mjs fetch --deep                    # all 25 provinces
+node scripts/import-churches.mjs fetch --deep --province=kampot  # or one at a time
+```
+
+That's ~1,646 requests nationally at 1.5s apart, so budget around 40 minutes —
+it resumes from cache, so it can be run across several sittings. The parser then
+matches each commune page against just that commune's ~9 villages (scoping it
+that tightly is what keeps the name matching safe) and records which villages
+have a church.
+
+Once village-level data exists, the registry arrives **pre-filled**: those
+villages come in already ticked, tagged "from directory", with the church name
+in the note where a single one could be attributed unambiguously. A pastor's own
+entry always wins over the directory — including a deliberate "no church here",
+which is never overwritten by a re-import. A **Confirm all N from the directory**
+button accepts a whole province in one request. Pre-filled villages count toward
+the totals but aren't treated as confirmed until a pastor accepts or corrects
+them, which is the same estimated-vs-confirmed distinction used everywhere else
+in the app.
+
 Rather than guessing at their HTML structure, the parser uses the real district
 and commune names already in `public/data/villages/*.json` as anchors and reads
 the number next to each. It deliberately takes the **first** occurrence of a
