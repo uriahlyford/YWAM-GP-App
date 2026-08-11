@@ -126,10 +126,18 @@ Khmer names, which match the gazetteer far more reliably than Latin
 transliterations.
 
 ```
+npm run osm:probe      # 10-second check that province lookup works — run this first
 npm run osm:fetch      # one Overpass query per province
 npm run osm:preview    # shows what it matched, writes nothing
 npm run osm:import     # merges into public/data/church-counts.js
 ```
+
+Provinces are located by **ISO 3166-2 code** (`KH-1`…`KH-25`), not by name. Name
+matching silently fails here: the gazetteer stores `កំពត` while OSM tags the
+boundary `ខេត្តកំពត` ("Kampot Province"), so an exact name match returns nothing
+for all 25 provinces — a total failure that only shows up after a slow crawl.
+ISO codes are stable; four name variants remain as fallbacks, and `osm:probe`
+reports which strategy worked before you commit to the full run.
 
 It fetches Christian places of worship and settlement nodes per province, snaps
 each church to the nearest settlement within 4km, then matches that settlement

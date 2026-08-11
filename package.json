@@ -12,6 +12,7 @@
     "churches:fetch": "node scripts/import-churches.mjs fetch",
     "churches:preview": "node scripts/import-churches.mjs parse --dry-run --verbose",
     "churches:import": "node scripts/import-churches.mjs parse",
+    "osm:probe": "node scripts/import-osm-churches.mjs probe",
     "osm:fetch": "node scripts/import-osm-churches.mjs fetch",
     "osm:preview": "node scripts/import-osm-churches.mjs match",
     "osm:import": "node scripts/import-osm-churches.mjs match --write",

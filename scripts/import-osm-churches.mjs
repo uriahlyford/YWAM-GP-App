@@ -47,18 +47,25 @@ const ENDPOINTS = [
 const MAX_MATCH_KM = 4; // a church further than this from any known settlement is left unplaced
 
 /**
- * One query per province, returning both churches and settlements inside it.
+ * ISO 3166-2:KH codes. Used as the primary way to find a province boundary in OSM.
  *
- * Province scoping is not cosmetic. Cambodian village names repeat heavily: 15% of names
- * occur in more than one province, and ថ្មី ("new") appears in 24 of the 25. Matching a
- * settlement name against the whole country would be ambiguous 15% of the time. Scoped to one
- * province, 90.7% of names are unique — and the remainder are skipped rather than guessed at.
+ * Name matching is fragile here: the gazetteer stores "កំពត" while OSM tags the boundary
+ * "ខេត្តកំពត" (literally "Kampot Province"), so an exact name match returns nothing for every
+ * province — a silent, total failure after a slow crawl. ISO codes are stable and OSM tags
+ * them on admin_level=4 boundaries, so they are tried first and names only as a fallback.
  */
-function provinceQuery(name) {
-  return `
-[out:json][timeout:300];
-area["ISO3166-1"="KH"][admin_level=2]->.kh;
-area["admin_level"="4"]["name"="${name}"](area.kh)->.p;
+const ISO = {
+  "banteay-meanchey": "KH-1", battambang: "KH-2", "kampong-cham": "KH-3",
+  "kampong-chhnang": "KH-4", "kampong-speu": "KH-5", "kampong-thom": "KH-6",
+  kampot: "KH-7", kandal: "KH-8", "koh-kong": "KH-9", kratie: "KH-10",
+  mondulkiri: "KH-11", "phnom-penh": "KH-12", "preah-vihear": "KH-13",
+  "prey-veng": "KH-14", pursat: "KH-15", ratanakiri: "KH-16", "siem-reap": "KH-17",
+  "preah-sihanouk": "KH-18", "stung-treng": "KH-19", "svay-rieng": "KH-20",
+  takeo: "KH-21", "oddar-meanchey": "KH-22", kep: "KH-23", pailin: "KH-24",
+  "tboung-khmum": "KH-25",
+};
+
+const CHURCH_AND_PLACES = `
 (
   node["amenity"="place_of_worship"]["religion"="christian"](area.p);
   way["amenity"="place_of_worship"]["religion"="christian"](area.p);
@@ -66,6 +73,28 @@ area["admin_level"="4"]["name"="${name}"](area.kh)->.p;
   node["place"~"^(village|hamlet|town|suburb|neighbourhood|isolated_dwelling)$"](area.p);
 );
 out center tags;`;
+
+/** Every way we know of to select one province's boundary, best first. */
+function areaStrategies(id, gaz) {
+  const out = [];
+  if (ISO[id]) out.push({ how: `ISO ${ISO[id]}`, sel: `area["ISO3166-2"="${ISO[id]}"]` });
+  if (gaz.khmer) {
+    // Both the bare name and the ខេត្ត- ("province") prefixed form OSM actually uses.
+    out.push({ how: `km "ខេត្ត${gaz.khmer}"`, sel: `area["admin_level"="4"]["name"="ខេត្ត${gaz.khmer}"]` });
+    out.push({ how: `km "${gaz.khmer}"`, sel: `area["admin_level"="4"]["name"="${gaz.khmer}"]` });
+    out.push({ how: `km regex`, sel: `area["admin_level"="4"]["name"~"${gaz.khmer}"]` });
+  }
+  if (gaz.latin) {
+    out.push({ how: `en "${gaz.latin}"`, sel: `area["admin_level"="4"]["name:en"~"^${gaz.latin}",i]` });
+  }
+  return out;
+}
+
+function provinceQuery(selector) {
+  return `
+[out:json][timeout:300];
+${selector}->.p;
+${CHURCH_AND_PLACES}`;
 }
 
 async function overpass(query, label) {
@@ -114,14 +143,11 @@ async function cmdFetch(only) {
       continue;
     }
     const gaz = loadGaz(id);
-    // OSM Cambodia labels provinces in Khmer; fall back to the Latin name.
     let got = null;
-    for (const name of [gaz.khmer, gaz.latin]) {
-      if (!name) continue;
+    for (const strat of areaStrategies(id, gaz)) {
       try {
-        got = await overpass(provinceQuery(name), id);
-        if (got && got.elements.length) break;
-        got = null;
+        const r = await overpass(provinceQuery(strat.sel), `${id} via ${strat.how}`);
+        if (r && r.elements.length) { got = r; break; }
       } catch (err) {
         console.log(`  ${id}: ${err.message}`);
       }
@@ -131,7 +157,7 @@ async function cmdFetch(only) {
       fs.writeFileSync(dest, JSON.stringify(got));
       ok++;
     } else {
-      console.log(`✗ ${id} — no results; check the province name in OSM`);
+      console.log(`✗ ${id} — every lookup strategy came back empty`);
     }
     // Overpass is a free volunteer service — do not hammer it.
     await sleep(3000);
@@ -139,6 +165,39 @@ async function cmdFetch(only) {
 
   console.log(`\nCached ${ok}/${targets.length} provinces into ${path.relative(ROOT, CACHE_DIR)}`);
   console.log("Next: node scripts/import-osm-churches.mjs match");
+}
+
+/**
+ * Fast sanity check: does province lookup work at all, and does OSM have anything there?
+ * Ten seconds of answer instead of a 25-province crawl that might return nothing.
+ */
+async function cmdProbe(id) {
+  const target = id || "kampot";
+  if (!fs.existsSync(path.join(VILLAGE_DIR, `${target}.json`))) {
+    console.log(`Unknown province id "${target}".`);
+    return;
+  }
+  const gaz = loadGaz(target);
+  console.log(`Probing ${target} (${gaz.latin} / ${gaz.khmer})\n`);
+
+  for (const strat of areaStrategies(target, gaz)) {
+    try {
+      const r = await overpass(provinceQuery(strat.sel), `${strat.how}`);
+      const churches = r.elements.filter((e) => e.tags?.amenity === "place_of_worship").length;
+      const places = r.elements.filter((e) => e.tags?.place).length;
+      if (r.elements.length) {
+        console.log(`\n✓ ${strat.how} works — ${churches} churches, ${places} settlements`);
+        console.log("\nGood to run: node scripts/import-osm-churches.mjs fetch");
+        return;
+      }
+      console.log(`  ${strat.how} — empty`);
+    } catch (err) {
+      console.log(`  ${strat.how} — ${err.message}`);
+    }
+    await sleep(1500);
+  }
+  console.log("\nEvery strategy came back empty. Either Overpass is unreachable, or the");
+  console.log("province boundary is tagged differently — inspect it on openstreetmap.org.");
 }
 
 // ---------------------------------------------------------------- matching
@@ -277,10 +336,10 @@ function cmdMatch(write) {
 }
 
 const [cmd, ...rest] = process.argv.slice(2);
+const provArg = rest.find((r) => r.startsWith("--province="));
 if (cmd === "fetch") {
   try {
-    const pa = rest.find((r) => r.startsWith("--province="));
-    await cmdFetch(pa ? pa.split("=")[1] : null);
+    await cmdFetch(provArg ? provArg.split("=")[1] : null);
   } catch (err) {
     console.log("\n" + err.message);
     console.log("\nOverpass is unreachable from here. Either the network blocks it, or every");
@@ -289,9 +348,18 @@ if (cmd === "fetch") {
     process.exit(1);
   }
 }
+else if (cmd === "probe") {
+  try {
+    await cmdProbe(provArg ? provArg.split("=")[1] : rest[0]);
+  } catch (err) {
+    console.log("\n" + err.message);
+    process.exit(1);
+  }
+}
 else if (cmd === "match") cmdMatch(rest.includes("--write"));
 else {
   console.log("Vision 2033 — OpenStreetMap church importer\n");
+  console.log("  node scripts/import-osm-churches.mjs probe [--province=kampot]   # 10s check");
   console.log("  node scripts/import-osm-churches.mjs fetch");
   console.log("  node scripts/import-osm-churches.mjs match [--write]\n");
   console.log("Uses OpenStreetMap rather than Google Maps: Google's terms forbid storing");
