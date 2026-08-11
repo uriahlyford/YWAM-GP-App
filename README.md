@@ -148,6 +148,39 @@ every commune in the Village Registry has a **search Maps** link that opens
 Google Maps searching for churches there — useful for checking a village you are
 unsure about, with nothing stored.
 
+### Google Places import
+
+`scripts/import-google-churches.mjs` pulls churches from the Google Places API
+and places them at villages the same way the other importers do.
+
+```
+export GOOGLE_MAPS_API_KEY=...                              # never commit this
+npm run google:fetch -- --province=kampot                   # start with one province
+npm run google:preview                                      # writes nothing
+npm run google:import
+```
+
+One Text Search call per commune (~1,650 nationally), scoped to the commune, so
+a village name appearing in a result's address is unambiguous. Results that are
+clearly not Christian congregations — wats, pagodas, mosques, in Latin or Khmer
+— are filtered out, since Google's `church` type is applied loosely in Cambodia.
+Existing entries from other sources are never overwritten, and everything this
+importer writes carries `source: "google"` so it can be filtered back out later.
+
+**Licence position, stated plainly.** Google Maps Platform's terms (3.2.3(b))
+forbid customers to "pre-fetch, index, store, reshare or rehost Google Maps
+Content" and name "copy and save business names, addresses" explicitly. Only the
+opaque place ID may be stored indefinitely. **Those terms are not scoped to
+commercial use** — they apply to every Maps Platform customer, so a
+non-commercial ministry purpose does not exempt this. The realistic consequence
+of breaching them is Google suspending the API key or project, not legal action.
+That is a decision for whoever owns the Google account; the `source: "google"`
+tagging exists so it can be reversed cleanly. **`npm run osm:*` does the same job
+under a licence with no such restriction and is the recommended importer.**
+
+Check current Places pricing and your free monthly allowance before running it
+nationwide — start with one province to see both the cost and the data quality.
+
 ### Importing the national church directory
 
 `cambodiachurches.org` is the best available source of real per-province
