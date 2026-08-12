@@ -28,9 +28,10 @@ how many of the 25 provinces it's built from.
 ## Data entry access
 
 Submitting requires a shared team passcode, set via the `ENTRY_PASSCODE`
-environment variable in the Netlify site settings. It falls back to `ywam2033`
-if unset — **change this before sharing widely**. Viewing the total is open to
-anyone with the link.
+environment variable in the Netlify site settings. It falls back to `vision2033`
+if unset. Setting `ENTRY_PASSCODE` in Netlify overrides the fallback and keeps
+the real passcode out of this public repository — prefer that to editing the
+default here. Viewing the total is open to anyone with the link.
 
 ## Language
 

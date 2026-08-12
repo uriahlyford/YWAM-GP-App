@@ -1,7 +1,7 @@
 import { getStore } from "@netlify/blobs";
 
 const STORE_NAME = "cambodia-tracker";
-const DEFAULT_PASSCODE = "ywam2033";
+const DEFAULT_PASSCODE = "vision2033";
 const MAX_HISTORY_PER_PROVINCE = 200;
 
 // Cambodia's population is ~17.4M; anything above this is a typo, not a report.
