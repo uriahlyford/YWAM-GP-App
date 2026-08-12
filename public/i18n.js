@@ -46,7 +46,7 @@
       km: "តើមានគ្រិស្តបរិស័ទប្រហែលប៉ុន្មាននាក់?",
     },
     "submit.howMany.hint": { en: "Your best guess is fine", km: "ការស្មានដ៏ល្អបំផុតរបស់អ្នកគឺគ្រប់គ្រាន់" },
-    "submit.villages": { en: "How many of those villages have a church?", km: "តើភូមិទាំងនោះប៉ុន្មានមានក្រុមជំនុំ?" },
+    "submit.villages": { en: "How many villages have a church?", km: "តើមានភូមិប៉ុន្មានដែលមានក្រុមជំនុំ?" },
     "submit.villages.has": { en: "Your province has", km: "ខេត្តរបស់អ្នកមាន" },
     "submit.villages.total": { en: "villages", km: "ភូមិ" },
     "submit.villages.pick": { en: "Choose your province first", km: "សូមជ្រើសរើសខេត្តរបស់អ្នកជាមុនសិន" },
