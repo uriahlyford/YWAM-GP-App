@@ -1,14 +1,25 @@
 # Vision 2033 — Christians in Cambodia
 
-One church leader per province submits **one number**: roughly how many
-Christians they think are in their province. Plus **how sure they are**, 1 to 10.
+One church leader per province submits two figures — roughly how many Christians
+they think are in their province, and how many of its villages have a church —
+plus **how sure they are**, 1 to 10.
 
-That's the whole app. Two screens:
+Three screens:
 
-- **Total** — the running national number, and which provinces have reported
-- **Submit** — province, the number, confidence, your name, team passcode
+- **Total** — the running number, villages reached, and which provinces have reported
+- **Submit** — province, the two figures, confidence, your name, team passcode
+- **2033** — secondary: how far the reported provinces are from the 10% goal
 
 Available in English and Khmer.
+
+## The village figure
+
+Leaders are never asked how many villages their province has — the app already
+knows. Picking a province fills in the official NCDD gazetteer count (Kep has 18,
+Kampong Speu has 1,363), and the leader only estimates how many of those have a
+church. The count is validated against that official figure on both the client
+and the server, so a province can't report more villages with churches than it
+has villages.
 
 ## Why confidence
 

@@ -7,6 +7,38 @@ const MAX_HISTORY_PER_PROVINCE = 200;
 // Cambodia's population is ~17.4M; anything above this is a typo, not a report.
 const MAX_CHRISTIANS = 20_000_000;
 
+// Official village count per province, from the NCDD gazetteer. Mirrors
+// referenceVillages in public/provinces.js — kept here so the server can reject a
+// village figure that exceeds what the province actually has, rather than trusting
+// the browser to have done it. 14,372 total.
+const VILLAGE_COUNTS = {
+  "banteay-meanchey": 652,
+  battambang: 810,
+  "kampong-cham": 916,
+  "kampong-chhnang": 569,
+  "kampong-speu": 1363,
+  "kampong-thom": 765,
+  kampot: 488,
+  kandal: 1010,
+  kep: 18,
+  "koh-kong": 119,
+  kratie: 258,
+  mondulkiri: 92,
+  "oddar-meanchey": 304,
+  pailin: 90,
+  "phnom-penh": 953,
+  "preah-sihanouk": 111,
+  "preah-vihear": 232,
+  "prey-veng": 1149,
+  pursat: 511,
+  ratanakiri: 243,
+  "siem-reap": 909,
+  "stung-treng": 128,
+  "svay-rieng": 690,
+  takeo: 1119,
+  "tboung-khmum": 873,
+};
+
 function store() {
   return getStore(STORE_NAME);
 }
@@ -53,6 +85,18 @@ async function handlePost(s, req) {
     return Response.json({ error: "That number doesn't look right." }, { status: 400 });
   }
 
+  const villagesWithChurches = Number(body.villagesWithChurches);
+  const villageMax = VILLAGE_COUNTS[provinceId];
+  if (!Number.isFinite(villagesWithChurches) || villagesWithChurches < 0) {
+    return Response.json({ error: "That village number doesn't look right." }, { status: 400 });
+  }
+  if (villageMax !== undefined && villagesWithChurches > villageMax) {
+    return Response.json(
+      { error: `That province has ${villageMax} villages.` },
+      { status: 400 }
+    );
+  }
+
   const confidence = Number(body.confidence);
   if (!Number.isInteger(confidence) || confidence < 1 || confidence > 10) {
     return Response.json({ error: "Confidence must be between 1 and 10." }, { status: 400 });
@@ -60,6 +104,7 @@ async function handlePost(s, req) {
 
   const entry = {
     christians: Math.round(christians),
+    villagesWithChurches: Math.round(villagesWithChurches),
     confidence,
     enteredBy: String(body.enteredBy || "").slice(0, 200),
     date: new Date().toISOString().slice(0, 10),

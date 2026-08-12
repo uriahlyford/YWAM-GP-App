@@ -85,13 +85,14 @@ body.km {
 .lang-toggle .sep { opacity: 0.4; margin: 0 4px; }
 .lang-toggle [data-lang-opt].on { color: var(--brand); font-weight: 700; }
 
-/* Two tabs on their own full-width row — nothing can scroll out of reach */
+/* Tabs on their own full-width row — nothing can scroll out of reach.
+   2033 is deliberately narrower: it's context, not a thing to fill in. */
 .tabs {
   max-width: 760px;
   margin: 0 auto;
   padding: 0 16px 10px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 0.58fr;
   gap: 8px;
 }
 
@@ -191,8 +192,67 @@ body.km {
 .empty h2 { margin: 0 0 6px; font-size: 19px; }
 .empty p { margin: 0 0 18px; color: var(--muted); }
 
+/* ---------- 2033 ---------- */
+.goal-heads {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.goal-num {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--brand);
+  line-height: 1.1;
+}
+.goal-num-muted { color: var(--ink); opacity: 0.42; }
+
+.goal-cap {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.goal-bar {
+  height: 10px;
+  background: var(--brand-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.goal-bar span {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+  border-radius: 999px;
+}
+
+.goal-scope {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.stat {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.stat:last-child { border-bottom: 0; padding-bottom: 0; }
+.stat:first-child { padding-top: 0; }
+.stat-num { font-size: 26px; font-weight: 700; line-height: 1.15; }
+.stat-cap { font-size: 13px; color: var(--muted); }
+
 /* ---------- form ---------- */
 .field { margin-bottom: 20px; }
+
+.field-note {
+  font-size: 13px;
+  color: var(--muted);
+  margin: -3px 0 8px;
+}
+.field-note strong { color: var(--ink); font-weight: 700; }
 
 .label {
   display: block;
