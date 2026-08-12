@@ -2,7 +2,8 @@
 
 ## Cambodia commune/village gazetteer
 
-The files under `public/data/villages/` are derived from:
+The `referenceVillages`, `referenceCommunes` and `referenceDistricts` counts in
+`public/provinces.js`, and the Khmer province names, are derived from:
 
 **cambodia-gazetteer** — https://github.com/RathanakSreang/cambodia-gazetteer
 Copyright (c) 2020 KhmerLang, licensed under the MIT License.
@@ -33,3 +34,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Population figures
+
+2024 Cambodia Inter-Censal Population Survey, National Institute of Statistics,
+Ministry of Planning.

@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Vision 2033 — Cambodia Church Growth Tracker</title>
-  <meta name="description" content="Tracking progress toward 10% of Cambodia following Christ by 2033, province by province and village by village." />
+  <title>Vision 2033 — Christians in Cambodia</title>
+  <meta name="description" content="Each province's church leader submits their best estimate of how many Christians are in their province." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect width=%2240%22 height=%2240%22 rx=%2211%22 fill=%22%23A9502F%22/><g stroke=%22white%22 stroke-width=%222.4%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22M20 6.5v7M16.8 9.6h6.4%22/><path d=%22M10 24.5L20 15l10 9.5%22/><path d=%22M13 24.5v9h14v-9%22/></g></svg>" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/styles.css" />
   <meta name="theme-color" content="#FBFAF8" />
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <a class="brand" href="/" id="brand-home">
+      <a class="brand" href="#" id="brand-home">
         <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 40 40" width="40" height="40">
+          <svg viewBox="0 0 40 40" width="34" height="34">
             <rect width="40" height="40" rx="11" fill="currentColor" />
             <g stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20 6.5v7M16.8 9.6h6.4" />
@@ -28,37 +28,27 @@
         </span>
         <span class="brand-text">
           <span class="brand-title" id="brand-title">Vision 2033</span>
-          <span class="brand-sub" id="brand-sub">Church growth tracker</span>
+          <span class="brand-sub" id="brand-sub">Christians in Cambodia</span>
         </span>
       </a>
-      <div class="topbar-right">
-        <nav class="tabs" id="tabs">
-          <button class="tab active" data-view="dashboard" id="tab-dashboard">Dashboard</button>
-          <button class="tab" data-view="pace" id="tab-pace">Pace to 2033</button>
-          <button class="tab" data-view="registry-picker" id="tab-registry">Village Registry</button>
-          <button class="tab" data-view="entry" id="tab-entry">Enter Data</button>
-        </nav>
-        <button class="lang-toggle" id="lang-toggle" type="button" aria-label="Toggle language">
-          <span data-lang-opt="en">EN</span><span class="sep">/</span><span data-lang-opt="km">ខ្មែរ</span>
-        </button>
-      </div>
+      <button class="lang-toggle" id="lang-toggle" type="button" aria-label="Language">
+        <span data-lang-opt="en">EN</span><span class="sep">/</span><span data-lang-opt="km">ខ្មែរ</span>
+      </button>
     </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="dashboard" id="tab-dashboard">Total</button>
+      <button class="tab" data-view="submit" id="tab-submit">Submit</button>
+    </nav>
   </header>
 
-  <main id="app" class="app">
-    <div class="loading" id="initial-loading">Loading…</div>
-  </main>
+  <main id="app" class="app"></main>
 
   <footer class="footer">
-    <p id="footer-text">Built for provincial pastors to report on church planting progress toward the goal of 10% of Cambodia's population following Christ by 2033.</p>
-    <p class="footer-credit">Population: 2024 Cambodia Inter-Censal Population Survey (NIS). Villages: official NCDD commune/village gazetteer.</p>
+    <p id="footer-text">Population figures: 2024 Cambodia Inter-Censal Population Survey (NIS).</p>
   </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-  <script src="/i18n.js"></script>
   <script src="/provinces.js"></script>
-  <script src="/data/seed-estimates.js"></script>
-  <script src="/data/projection.js"></script>
+  <script src="/i18n.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

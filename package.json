@@ -1,23 +1,9 @@
 {
   "name": "vision-2033",
   "private": true,
-  "version": "1.0.0",
-  "description": "Tracking progress toward 10% of Cambodia's population following Christ by 2033, province by province and village by village.",
+  "version": "2.0.0",
+  "description": "One church leader per Cambodian province submits their best estimate of how many Christians are in their province, and how sure they are of it.",
   "dependencies": {
     "@netlify/blobs": "^10.7.12"
-  },
-  "scripts": {
-    "churches:urls": "node scripts/import-churches.mjs urls",
-    "churches:status": "node scripts/import-churches.mjs status",
-    "churches:fetch": "node scripts/import-churches.mjs fetch",
-    "churches:preview": "node scripts/import-churches.mjs parse --dry-run --verbose",
-    "churches:import": "node scripts/import-churches.mjs parse",
-    "osm:probe": "node scripts/import-osm-churches.mjs probe",
-    "osm:fetch": "node scripts/import-osm-churches.mjs fetch",
-    "osm:preview": "node scripts/import-osm-churches.mjs match",
-    "osm:import": "node scripts/import-osm-churches.mjs match --write",
-    "google:fetch": "node scripts/import-google-churches.mjs fetch",
-    "google:preview": "node scripts/import-google-churches.mjs match",
-    "google:import": "node scripts/import-google-churches.mjs match --write"
   }
 }
