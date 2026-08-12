@@ -24,6 +24,17 @@
     // Held in state, not left in the DOM: a validation error re-renders the form,
     // and a leader who mistyped one field should not lose the other four.
     form: { provinceId: "", christians: "", villages: "", name: "", passcode: "" },
+
+    // Village registry
+    regCounts: {}, // provinceId -> villages confirmed as having a church
+    regProvince: null,
+    regData: null, // the province's district/commune/village tree
+    regStatuses: {}, // villageCode -> { hasChurch }
+    regLoading: false,
+    regError: "",
+    regFilter: "",
+    regOpen: {}, // district/commune code -> expanded
+    regBusy: {}, // villageCode -> mid-save
   };
 
   var app = document.getElementById("app");
@@ -118,26 +129,45 @@
       state.loading = true;
       render();
     }
-    fetch("/api/entries")
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (data) {
+    Promise.all([
+      fetch("/api/entries")
+        .then(function (r) {
+          return r.json();
+        })
+        .catch(function () {
+          return null;
+        }),
+      // Registry totals ride along, so the dashboard can show confirmed
+      // alongside estimated without a second round trip.
+      fetch("/api/villages?summary=1")
+        .then(function (r) {
+          return r.json();
+        })
+        .catch(function () {
+          return null;
+        }),
+    ]).then(function (res) {
+      var data = res[0];
+      var summary = res[1];
+      if (data) {
         var map = {};
         (data.provinces || []).forEach(function (p) {
           var latest = (p.history || [])[0];
           if (latest) map[p.id] = latest;
         });
         state.byProvince = map;
-        state.loading = false;
-        state.error = "";
-        render();
-      })
-      .catch(function () {
-        state.loading = false;
-        state.error = t("err.generic");
-        render();
-      });
+      }
+      if (summary && summary.counts) state.regCounts = summary.counts;
+      state.loading = false;
+      state.error = data ? "" : t("err.generic");
+      render();
+    });
+  }
+
+  function confirmedTotal() {
+    var n = 0;
+    for (var k in state.regCounts) if (state.regCounts.hasOwnProperty(k)) n += state.regCounts[k] || 0;
+    return n;
   }
 
   // ---------- dashboard ----------
@@ -175,7 +205,15 @@
             ? '<div class="headline-sub">' +
               '<strong class="num">' + fmt(s.villagesWithChurches) + "</strong> " +
               esc(t("dash.from")) + ' <span class="num">' + fmt(s.villagesTotal) + "</span> " +
-              esc(t("dash.villagesLine")) +
+              esc(t("dash.villagesLine")) + " — " + esc(t("reg.estimated")) +
+              "</div>"
+            : "") +
+          // The registry's own count, kept separate rather than blended in: one is a
+          // leader's estimate, the other is village-by-village confirmation.
+          (confirmedTotal()
+            ? '<div class="headline-sub">' +
+              '<strong class="num">' + fmt(confirmedTotal()) + "</strong> " +
+              esc(t("reg.confirmed")) +
               "</div>"
             : "") +
           "</div>"
@@ -286,6 +324,329 @@
     );
 
     app.appendChild(el('<div class="card waiting">' + esc(t("goal.partial")) + "</div>"));
+  }
+
+  // ---------- village registry ----------
+  //
+  // 14,372 villages nationally, so nothing renders that isn't being looked at:
+  // districts and communes stay collapsed until opened, and search replaces the
+  // tree rather than adding to it.
+
+  var regPass = "";
+
+  function passcodeValue() {
+    if (regPass) return regPass;
+    try {
+      return localStorage.getItem(PASSCODE_KEY) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function locName(o) {
+    return window.I18N.getLang() === "km" ? o.khmer || o.latin : o.latin || o.khmer;
+  }
+
+  function isMarked(code) {
+    return !!(state.regStatuses[code] && state.regStatuses[code].hasChurch);
+  }
+
+  function communeMarked(c) {
+    var n = 0;
+    c.villages.forEach(function (v) {
+      if (isMarked(v.code)) n++;
+    });
+    return n;
+  }
+
+  function districtCounts(d) {
+    var marked = 0;
+    var total = 0;
+    d.communes.forEach(function (c) {
+      marked += communeMarked(c);
+      total += c.villages.length;
+    });
+    return { marked: marked, total: total };
+  }
+
+  function provinceMarked() {
+    var n = 0;
+    for (var code in state.regStatuses)
+      if (state.regStatuses.hasOwnProperty(code) && state.regStatuses[code].hasChurch) n++;
+    return n;
+  }
+
+  function openRegistryProvince(id) {
+    state.regProvince = id;
+    state.regData = null;
+    state.regStatuses = {};
+    state.regOpen = {};
+    state.regFilter = "";
+    state.regError = "";
+    state.regLoading = true;
+    render();
+
+    Promise.all([
+      fetch("/data/villages/" + encodeURIComponent(id) + ".json")
+        .then(function (r) {
+          return r.json();
+        })
+        .catch(function () {
+          return null;
+        }),
+      fetch("/api/villages?province=" + encodeURIComponent(id))
+        .then(function (r) {
+          return r.json();
+        })
+        .catch(function () {
+          return null;
+        }),
+    ]).then(function (res) {
+      state.regData = res[0];
+      state.regStatuses = (res[1] && res[1].statuses) || {};
+      state.regLoading = false;
+      if (!res[0]) state.regError = t("err.generic");
+      render();
+    });
+  }
+
+  function villageRow(v, where) {
+    return (
+      '<div class="vil' + (isMarked(v.code) ? " on" : "") + (state.regBusy[v.code] ? " busy" : "") +
+      '" data-vil="' + esc(v.code) + '">' +
+      '<span class="vil-box">✓</span>' +
+      '<span class="vil-name">' + esc(locName(v)) +
+      (where ? '<span class="vil-where"> · ' + esc(where) + "</span>" : "") +
+      "</span>" +
+      "</div>"
+    );
+  }
+
+  var SEARCH_CAP = 150;
+
+  function regListHtml() {
+    if (!state.regData) return "";
+    var q = state.regFilter.trim().toLowerCase();
+
+    if (q) {
+      var hits = [];
+      state.regData.districts.forEach(function (d) {
+        d.communes.forEach(function (c) {
+          c.villages.forEach(function (v) {
+            var hay = (
+              (v.latin || "") + " " + (v.khmer || "") + " " + (c.latin || "") + " " + (c.khmer || "")
+            ).toLowerCase();
+            if (hay.indexOf(q) !== -1) hits.push({ v: v, where: locName(c) });
+          });
+        });
+      });
+      if (!hits.length) return '<div class="waiting">' + esc(t("reg.noResults")) + "</div>";
+      var shown = hits.slice(0, SEARCH_CAP);
+      return (
+        shown
+          .map(function (h) {
+            return villageRow(h.v, h.where);
+          })
+          .join("") +
+        (hits.length > SEARCH_CAP
+          ? '<div class="waiting" style="padding-top:12px">' +
+            (hits.length - SEARCH_CAP) + " " + esc(t("reg.more")) + "</div>"
+          : "")
+      );
+    }
+
+    return state.regData.districts
+      .map(function (d) {
+        var dc = districtCounts(d);
+        var open = !!state.regOpen[d.code];
+        var body = "";
+        if (open) {
+          body = d.communes
+            .map(function (c) {
+              var cOpen = !!state.regOpen[c.code];
+              return (
+                '<div class="node node-commune">' +
+                '<button class="node-head" data-exp="' + esc(c.code) + '">' +
+                '<span class="node-caret">' + (cOpen ? "▾" : "▸") + "</span>" +
+                '<span class="node-name">' + esc(locName(c)) + "</span>" +
+                '<span class="node-sub num">' + communeMarked(c) + "/" + c.villages.length + "</span>" +
+                "</button>" +
+                (cOpen
+                  ? '<div class="node-body">' +
+                    c.villages
+                      .map(function (v) {
+                        return villageRow(v, "");
+                      })
+                      .join("") +
+                    "</div>"
+                  : "") +
+                "</div>"
+              );
+            })
+            .join("");
+        }
+        return (
+          '<div class="node">' +
+          '<button class="node-head" data-exp="' + esc(d.code) + '">' +
+          '<span class="node-caret">' + (open ? "▾" : "▸") + "</span>" +
+          '<span class="node-name">' + esc(locName(d)) + "</span>" +
+          '<span class="node-sub num">' + dc.marked + "/" + dc.total + "</span>" +
+          "</button>" +
+          (open ? '<div class="node-body">' + body + "</div>" : "") +
+          "</div>"
+        );
+      })
+      .join("");
+  }
+
+  // Update just the list and the header count, so typing in search keeps focus
+  // and tapping a village doesn't jump the page.
+  function refreshRegList() {
+    var list = document.getElementById("reg-list");
+    if (list) list.innerHTML = regListHtml();
+    var p = provinceById(state.regProvince);
+    var count = document.getElementById("reg-count");
+    if (count && p) {
+      count.textContent =
+        provinceMarked() + " " + t("reg.of") + " " + fmt(p.referenceVillages) + " " + t("reg.marked");
+    }
+    var bar = document.getElementById("reg-bar");
+    if (bar && p && p.referenceVillages) {
+      bar.style.width = ((provinceMarked() / p.referenceVillages) * 100).toFixed(1) + "%";
+    }
+  }
+
+  function toggleVillage(code) {
+    if (state.regBusy[code]) return;
+    var pass = passcodeValue();
+    if (!pass) {
+      state.regError = t("err.passcode");
+      render();
+      return;
+    }
+
+    var was = isMarked(code);
+    var next = !was;
+    state.regBusy[code] = true;
+    if (next) state.regStatuses[code] = { hasChurch: true };
+    else delete state.regStatuses[code];
+    state.regError = "";
+    refreshRegList();
+
+    fetch("/api/villages", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        passcode: pass,
+        provinceId: state.regProvince,
+        villageCode: code,
+        hasChurch: next,
+      }),
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error("save failed");
+        return r.json();
+      })
+      .then(function () {
+        delete state.regBusy[code];
+        state.regCounts[state.regProvince] = provinceMarked();
+        try {
+          localStorage.setItem(PASSCODE_KEY, pass);
+        } catch (e) {}
+        refreshRegList();
+      })
+      .catch(function () {
+        delete state.regBusy[code];
+        // Put it back the way it was — the server is the source of truth.
+        if (was) state.regStatuses[code] = { hasChurch: true };
+        else delete state.regStatuses[code];
+        state.regError = t("reg.saveError");
+        render();
+      });
+  }
+
+  function renderRegistry() {
+    // Province picker
+    if (!state.regProvince) {
+      app.appendChild(
+        el(
+          '<div class="card">' +
+            '<div class="reg-title">' + esc(t("reg.pick")) + "</div>" +
+            '<div class="goal-scope" style="text-align:left;margin-top:6px">' +
+            esc(t("reg.intro")) + "</div>" +
+            "</div>"
+        )
+      );
+
+      var cards = PROVINCES.map(function (p) {
+        var marked = state.regCounts[p.id] || 0;
+        var total = p.referenceVillages || 0;
+        var w = total ? Math.min(100, (marked / total) * 100) : 0;
+        return (
+          '<button class="prov-card" data-reg-open="' + esc(p.id) + '">' +
+          '<div class="prov-card-name">' + esc(provinceName(p)) + "</div>" +
+          '<div class="prov-card-sub"><span class="num">' + fmt(marked) + "</span> " +
+          esc(t("reg.of")) + ' <span class="num">' + fmt(total) + "</span> " + esc(t("reg.marked")) +
+          "</div>" +
+          '<div class="mini-bar"><span style="width:' + w.toFixed(1) + '%"></span></div>' +
+          "</button>"
+        );
+      }).join("");
+
+      app.appendChild(el('<div class="prov-grid">' + cards + "</div>"));
+      return;
+    }
+
+    var p = provinceById(state.regProvince);
+    var marked = provinceMarked();
+    var total = (p && p.referenceVillages) || 0;
+
+    app.appendChild(
+      el(
+        '<div class="card">' +
+          '<button class="btn-link" style="padding:0 0 8px" data-reg-back="1">← ' +
+          esc(t("reg.back")) + "</button>" +
+          '<div class="reg-head">' +
+          '<span class="reg-title">' + esc(p ? provinceName(p) : "") + "</span>" +
+          '<span class="reg-count num" id="reg-count">' +
+          marked + " " + esc(t("reg.of")) + " " + fmt(total) + " " + esc(t("reg.marked")) +
+          "</span>" +
+          "</div>" +
+          '<div class="mini-bar"><span id="reg-bar" style="width:' +
+          (total ? ((marked / total) * 100).toFixed(1) : 0) + '%"></span></div>' +
+          "</div>"
+      )
+    );
+
+    if (!passcodeValue()) {
+      app.appendChild(
+        el(
+          '<div class="card"><div class="field" style="margin:0">' +
+            '<label class="label" for="reg-pass">' + esc(t("reg.passcode")) + "</label>" +
+            '<input id="reg-pass" type="password" value="" placeholder="' +
+            esc(t("submit.passcode.placeholder")) + '" />' +
+            "</div></div>"
+        )
+      );
+    }
+
+    if (state.regError) app.appendChild(el('<div class="error">' + esc(state.regError) + "</div>"));
+
+    if (state.regLoading) {
+      app.appendChild(el('<div class="loading">…</div>'));
+      return;
+    }
+    if (!state.regData) return;
+
+    app.appendChild(
+      el(
+        '<div class="card">' +
+          '<input class="reg-search" id="reg-search" type="text" placeholder="' +
+          esc(t("reg.search")) + '" value="' + esc(state.regFilter) + '" />' +
+          '<div id="reg-list">' + regListHtml() + "</div>" +
+          "</div>"
+      )
+    );
   }
 
   // ---------- submit ----------
@@ -490,6 +851,7 @@
 
     document.getElementById("tab-dashboard").textContent = t("nav.dashboard");
     document.getElementById("tab-submit").textContent = t("nav.submit");
+    document.getElementById("tab-registry").textContent = t("nav.registry");
     document.getElementById("tab-goal").textContent = t("nav.goal");
     document.getElementById("brand-title").textContent = t("app.title");
     document.getElementById("brand-sub").textContent = t("app.subtitle");
@@ -504,6 +866,7 @@
     });
 
     if (state.view === "submit") return renderSubmit();
+    if (state.view === "registry") return renderRegistry();
 
     if (state.loading) {
       app.appendChild(el('<div class="loading">…</div>'));
@@ -522,7 +885,7 @@
     render();
     // Always re-read on the way in: another province may have reported since
     // this page was opened.
-    if (view === "dashboard" || view === "goal") load(true);
+    if (view === "dashboard" || view === "goal" || view === "registry") load(true);
     window.scrollTo(0, 0);
   }
 
@@ -547,7 +910,18 @@
     if (e.target.id === "f-province") onProvinceChange();
   });
 
-  app.addEventListener("input", syncField);
+  app.addEventListener("input", function (e) {
+    if (e.target.id === "reg-search") {
+      state.regFilter = e.target.value;
+      refreshRegList();
+      return;
+    }
+    if (e.target.id === "reg-pass") {
+      regPass = e.target.value;
+      return;
+    }
+    syncField(e);
+  });
 
   app.addEventListener("click", function (e) {
     var conf = e.target.closest("[data-conf]");
@@ -560,6 +934,28 @@
       document.getElementById("conf-caption").textContent = confBand(state.confidence);
       return;
     }
+    var regOpen = e.target.closest("[data-reg-open]");
+    if (regOpen) return openRegistryProvince(regOpen.getAttribute("data-reg-open"));
+
+    if (e.target.closest("[data-reg-back]")) {
+      state.regProvince = null;
+      state.regData = null;
+      state.regError = "";
+      render();
+      return;
+    }
+
+    var exp = e.target.closest("[data-exp]");
+    if (exp) {
+      var code = exp.getAttribute("data-exp");
+      state.regOpen[code] = !state.regOpen[code];
+      refreshRegList();
+      return;
+    }
+
+    var vil = e.target.closest("[data-vil]");
+    if (vil) return toggleVillage(vil.getAttribute("data-vil"));
+
     if (e.target.closest("#f-submit")) return submit();
     if (e.target.closest("[data-again]")) return go("submit");
     var goBtn = e.target.closest("[data-go]");

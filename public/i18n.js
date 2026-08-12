@@ -15,6 +15,7 @@
 
     "nav.dashboard": { en: "Total", km: "សរុប" },
     "nav.submit": { en: "Submit", km: "ដាក់ស្នើ" },
+    "nav.registry": { en: "Villages", km: "ភូមិ" },
     "nav.goal": { en: "2033", km: "២០៣៣" },
 
     // Dashboard
@@ -64,6 +65,26 @@
     "conf.low": { en: "Rough guess", km: "ស្មានប្រហាក់ប្រហែល" },
     "conf.mid": { en: "Fairly sure", km: "ប្រាកដល្មម" },
     "conf.high": { en: "Very sure", km: "ប្រាកដខ្លាំង" },
+
+    // Village registry
+    "reg.pick": { en: "Choose your province", km: "ជ្រើសរើសខេត្តរបស់អ្នក" },
+    "reg.intro": {
+      en: "Mark each village that has a church. Counted separately from the estimate.",
+      km: "សូមគូសសម្គាល់ភូមិនីមួយៗដែលមានក្រុមជំនុំ។ រាប់ដោយឡែកពីការប៉ាន់ស្មាន។",
+    },
+    "reg.back": { en: "All provinces", km: "ខេត្តទាំងអស់" },
+    "reg.marked": { en: "marked", km: "បានគូស" },
+    "reg.of": { en: "of", km: "ក្នុងចំណោម" },
+    "reg.search": { en: "Search a village or commune", km: "ស្វែងរកភូមិ ឬឃុំ" },
+    "reg.noResults": { en: "No match.", km: "រកមិនឃើញ។" },
+    "reg.more": { en: "more — keep typing to narrow", km: "ទៀត — សូមវាយបន្ថែមដើម្បីបង្រួម" },
+    "reg.passcode": { en: "Team passcode to mark villages", km: "លេខសម្ងាត់ក្រុមដើម្បីគូសសម្គាល់ភូមិ" },
+    "reg.saveError": {
+      en: "Couldn't save — check your passcode and connection.",
+      km: "មិនអាចរក្សាទុកបានទេ — សូមពិនិត្យលេខសម្ងាត់ និងការតភ្ជាប់របស់អ្នក។",
+    },
+    "reg.confirmed": { en: "confirmed village by village", km: "បានបញ្ជាក់ម្តងមួយភូមិ" },
+    "reg.estimated": { en: "estimated by leaders", km: "ប៉ាន់ស្មានដោយអ្នកដឹកនាំ" },
 
     // 2033
     "goal.title": { en: "Where this is going", km: "ទិសដៅនៃដំណើរនេះ" },

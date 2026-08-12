@@ -4,13 +4,25 @@ One church leader per province submits two figures — roughly how many Christia
 they think are in their province, and how many of its villages have a church —
 plus **how sure they are**, 1 to 10.
 
-Three screens:
+Four screens:
 
 - **Total** — the running number, villages reached, and which provinces have reported
 - **Submit** — province, the two figures, confidence, your name, team passcode
+- **Villages** — the full registry: mark village by village which ones have a church
 - **2033** — secondary: how far the reported provinces are from the 10% goal
 
 Available in English and Khmer.
+
+## Two numbers, kept apart
+
+The app carries two counts of villages with a church and never blends them:
+
+- **Estimated** — the leader's own figure from the Submit form, available immediately
+- **Confirmed** — the count of villages actually ticked in the registry, which grows
+  slowly and is only as complete as the work behind it
+
+Both appear on the Total screen, labelled. Early on the confirmed number will be far
+lower — that gap is real information about coverage, not an error to be smoothed over.
 
 ## The village figure
 
@@ -57,10 +69,16 @@ Province names come from the official NCDD gazetteer's Khmer spellings.
 
 - Static frontend in `public/` — vanilla JS, no framework, no build step, no CDN
   scripts, so it works on a patchy connection
-- One Netlify Function backed by [Netlify Blobs](https://docs.netlify.com/blobs/overview/)
-  — `netlify/functions/entries.mjs`, serving `GET`/`POST /api/entries`
-- `public/provinces.js` — the 25 provinces with Khmer names and reference
-  populations
+- Two Netlify Functions backed by [Netlify Blobs](https://docs.netlify.com/blobs/overview/):
+  `entries.mjs` (`/api/entries`) for province reports, `villages.mjs`
+  (`/api/villages`) for registry ticks
+- `public/provinces.js` — the 25 provinces with Khmer names and reference populations
+- `public/data/villages/*.json` — the NCDD gazetteer, one file per province,
+  district → commune → village with Khmer and Latin names
+
+The registry never renders what isn't being looked at. Districts and communes stay
+collapsed until opened, and search replaces the tree rather than adding to it, so
+Kampong Speu's 1,363 villages cost nothing until someone drills into them.
 
 ## Local development
 
@@ -71,15 +89,11 @@ netlify dev
 
 ## Earlier version
 
-Before v2 this app also had a per-village church registry (all 14,372 villages
-from the NCDD gazetteer), a "Pace to 2033" projection page, research-based seed
-estimates per province, and importers that pulled church locations from
-OpenStreetMap, Google Places and cambodiachurches.org.
-
-All of it is intact in git history and can come back. To retrieve any of it:
+The v1 app also had research-based seed estimates per province and importers that
+pulled church locations from OpenStreetMap, Google Places and cambodiachurches.org.
+Those are still in git history at `e8a8dfb` and can come back:
 
 ```
-git log --oneline                              # find the commit before the v2 rewrite
-git checkout <commit> -- public/data/villages  # e.g. the village gazetteer
-git checkout <commit> -- scripts               # the church importers
+git checkout e8a8dfb -- scripts                      # the church importers
+git checkout e8a8dfb -- public/data/seed-estimates.js
 ```

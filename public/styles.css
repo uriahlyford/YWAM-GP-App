@@ -92,7 +92,8 @@ body.km {
   margin: 0 auto;
   padding: 0 16px 10px;
   display: grid;
-  grid-template-columns: 1fr 1fr 0.58fr;
+  /* 2x2 on a phone so no tab can scroll out of reach; one row once there's space */
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
 
@@ -191,6 +192,104 @@ body.km {
 .empty { text-align: center; padding: 30px 18px; }
 .empty h2 { margin: 0 0 6px; font-size: 19px; }
 .empty p { margin: 0 0 18px; color: var(--muted); }
+
+/* ---------- village registry ---------- */
+.prov-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.prov-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 13px 14px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.prov-card-name { font-weight: 600; }
+.prov-card-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.mini-bar {
+  height: 4px;
+  background: var(--line);
+  border-radius: 999px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.mini-bar span { display: block; height: 100%; background: var(--brand); }
+
+.reg-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.reg-title { font-weight: 700; font-size: 18px; }
+.reg-count { font-size: 13px; color: var(--muted); white-space: nowrap; }
+
+/* collapsible district / commune */
+.node { border-bottom: 1px solid var(--line); }
+.node:last-child { border-bottom: 0; }
+
+.node-head {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 13px 0;
+  cursor: pointer;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.node-head:hover { color: var(--brand); }
+.node-caret { color: var(--muted); font-size: 11px; width: 10px; flex-shrink: 0; }
+.node-name { font-weight: 600; flex: 1; min-width: 0; }
+.node-sub { font-size: 12px; color: var(--muted); font-weight: 400; }
+.node-body { padding-left: 20px; }
+.node-commune > .node-head { padding: 10px 0; }
+.node-commune > .node-head .node-name { font-weight: 500; }
+
+/* a village row is the tap target */
+.vil {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 0;
+  cursor: pointer;
+  border-top: 1px solid var(--line);
+}
+.vil:first-child { border-top: 0; }
+
+.vil-box {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--line);
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+.vil.on .vil-box { background: var(--brand); border-color: var(--brand); color: #fff; }
+.vil.busy { opacity: 0.5; }
+.vil-name { min-width: 0; }
+.vil-where { font-size: 12px; color: var(--muted); }
+
+.reg-search { margin-bottom: 4px; }
 
 /* ---------- 2033 ---------- */
 .goal-heads {
@@ -378,6 +477,8 @@ input.big {
 @media (min-width: 620px) {
   .conf-grid { grid-template-columns: repeat(10, 1fr); }
   .headline-num { font-size: 64px; }
+  .tabs { grid-template-columns: 1fr 1fr 1fr 0.6fr; }
+  .prov-grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {
