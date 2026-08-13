@@ -47,7 +47,9 @@
   // ---------- state ----------
 
   var state = {
-    tab: "form",
+    // Totals is the landing page. A leader opening the link sees the national
+    // picture the survey is building before being asked for anything.
+    tab: "results",
     step: "you", // you | ministries | review | done
     report: blankReport(),
     openMinistry: null,
@@ -663,10 +665,15 @@
   // ---------- the totals screen ----------
 
   function renderResults() {
+    // This is the landing page, so a failed load must not be a dead end — the
+    // way into the form stays on screen.
     if (state.resultsError) {
       return (
-        '<div class="card"><div class="error">' + esc(state.resultsError) + "</div>" +
-          '<button class="btn" data-action="load-results">Try again</button></div>'
+        '<div class="card">' +
+          '<div class="error">' + esc(state.resultsError) + "</div>" +
+          '<button class="btn-ghost" data-action="load-results">Try again</button>' +
+        "</div>" +
+        reportButton()
       );
     }
     if (state.loadingResults || !state.results) return '<div class="loading">Loading…</div>';
@@ -674,13 +681,23 @@
     var reports = state.results;
     var t = totalsFor(reports);
 
+    // Day one, this page is the only explanation of the survey anybody gets, so
+    // the empty state says what is being counted rather than just "no data".
     if (!t.ministries) {
       return (
+        '<div class="step-head">' +
+          '<h1 class="step-title">YWAM Cambodia, on one page</h1>' +
+          '<p class="step-sub">Each regional leader reports the ministries they oversee. As those come in, this page adds them up into one national picture.</p>' +
+        "</div>" +
+        '<div class="card">' +
+          '<div class="sec-title" style="margin-bottom:12px">What it will show</div>' +
+          goalList() +
+        "</div>" +
         '<div class="card empty">' +
           "<h2>Nothing reported yet</h2>" +
-          "<p>The totals fill in as leaders send their reports.</p>" +
+          "<p>Yours can be the first.</p>" +
         "</div>" +
-        '<button class="btn" data-action="to-ministries">Start my report</button>'
+        reportButton()
       );
     }
 
@@ -743,6 +760,10 @@
         tile(t.churchesServed + t.churchesLed, "local churches served or led") +
       "</div>" +
 
+      '<div class="cta">' + reportButton() +
+        '<p class="cta-note">' + (PROVINCES.length - t.provinces) + " of the 25 provinces haven't been reported on yet.</p>" +
+      "</div>" +
+
       '<div class="card">' +
         '<div class="sec-head"><div class="sec-title">By province</div>' +
           '<div class="sec-count">' + t.provinces + " of " + PROVINCES.length + "</div></div>" +
@@ -790,6 +811,32 @@
         '<button class="btn-ghost" data-action="load-results">Refresh</button>' +
       "</div>"
     );
+  }
+
+  // The six figures the tiles hold once reports arrive — the survey's whole
+  // purpose, in the order the tiles show them.
+  function goalList() {
+    var goals = [
+      "How many provinces we are in",
+      "How many staff we are, Cambodian and international",
+      "How many students went through our training schools in " + YEAR,
+      "How many children and young people we reach every day",
+      "What kinds of ministry we reach them through — sports, English, kids clubs, and the rest",
+      "How many local churches we serve, and how many we lead",
+    ];
+    return '<ul class="goals">' +
+      goals.map(function (g) { return "<li>" + esc(g) + "</li>"; }).join("") +
+      "</ul>";
+  }
+
+  // The one thing to do after reading the totals. The wording follows whether
+  // there's already a draft on this phone, so a leader coming back mid-report
+  // isn't invited to "add" one they have half written.
+  function reportButton() {
+    var r = state.report;
+    var started = r.ministries.length || r.provinceIds.length || r.leaderName.trim();
+    return '<button class="btn" data-action="start-report">' +
+      (started ? "Continue my report" : "Add my report") + "</button>";
   }
 
   // Most of these fields are optional, so a zero almost always means "nobody
@@ -1136,6 +1183,14 @@
         state.error = "";
         render();
         break;
+      case "start-report":
+        // Straight to the ministry cards if the provinces are already picked,
+        // otherwise to step 1. Either way, out of the totals and into the form.
+        state.tab = "form";
+        state.step = state.report.provinceIds.length ? "ministries" : "you";
+        state.error = "";
+        render();
+        break;
       case "to-review":
         state.step = "review";
         state.error = "";
@@ -1190,5 +1245,6 @@
 
   loadDraft();
   if (state.report.ministries.length || state.report.provinceIds.length) state.step = "ministries";
-  render();
+  // loadResults renders, including the loading state — no separate first paint.
+  loadResults();
 })();

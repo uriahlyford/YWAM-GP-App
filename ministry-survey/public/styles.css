@@ -495,6 +495,36 @@ input:focus, select:focus, textarea:focus {
 .who { font-size: 14px; color: var(--muted); margin: 0; }
 .who b { color: var(--ink); }
 
+/* what the survey is for, shown before any report has arrived */
+.goals { margin: 0; padding: 0; list-style: none; }
+.goals li {
+  position: relative;
+  padding: 9px 0 9px 22px;
+  font-size: 15px;
+  border-bottom: 1px solid var(--line);
+}
+.goals li:last-child { border-bottom: 0; padding-bottom: 0; }
+.goals li::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 18px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+.goals li:first-child::before { top: 17px; }
+
+/* the one call to action on the totals page */
+.cta { margin-bottom: 18px; }
+.cta-note {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 /* ---------- footer ---------- */
 .footer {
   max-width: 760px;
