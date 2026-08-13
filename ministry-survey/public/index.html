@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YWAM Cambodia — Ministry Survey</title>
+  <meta name="description" content="Each regional leader reports the ministries they oversee: where they are, who leads them, how many staff, and who they reach." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><rect width=%2240%22 height=%2240%22 rx=%2211%22 fill=%22%23A9502F%22/><g stroke=%22white%22 stroke-width=%222.6%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><circle cx=%2220%22 cy=%2215.5%22 r=%224%22/><path d=%22M11 30.5c0-5 4-8.5 9-8.5s9 3.5 9 8.5%22/></g></svg>" />
+  <!-- No webfont on purpose. These are phones on Cambodian mobile data; a
+       blocking stylesheet from another host is a slow first paint at best and a
+       blank page at worst. The system font stack in styles.css loads instantly. -->
+  <link rel="stylesheet" href="/styles.css" />
+  <meta name="theme-color" content="#FBFAF8" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" width="34" height="34">
+            <rect width="40" height="40" rx="11" fill="currentColor" />
+            <g stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="20" cy="15.5" r="4" />
+              <path d="M11 30.5c0-5 4-8.5 9-8.5s9 3.5 9 8.5" />
+            </g>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <span class="brand-title">YWAM Cambodia</span>
+          <span class="brand-sub">Ministry survey</span>
+        </span>
+      </a>
+      <span class="saved-flag" id="saved-flag" hidden>Draft saved</span>
+    </div>
+    <nav class="tabs">
+      <button class="tab active" data-goto="form" id="tab-form" type="button">My report</button>
+      <button class="tab" data-goto="results" id="tab-results" type="button">Totals</button>
+    </nav>
+  </header>
+
+  <main id="app" class="app"></main>
+
+  <footer class="footer">
+    <p>Your draft is saved on this device as you type, so you can stop and come back.</p>
+  </footer>
+
+  <script src="/provinces.js"></script>
+  <script src="/options.js"></script>
+  <script src="/survey.js"></script>
+</body>
+</html>

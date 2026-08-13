@@ -1,0 +1,9 @@
+{
+  "name": "ywam-cambodia-ministry-survey",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Each YWAM Cambodia regional leader reports the ministries they oversee — where they are, who leads them, how many staff, and who they reach.",
+  "dependencies": {
+    "@netlify/blobs": "^10.7.12"
+  }
+}
