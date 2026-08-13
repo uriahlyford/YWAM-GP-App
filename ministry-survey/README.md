@@ -95,12 +95,29 @@ can't read a typed answer as a formula.
 
 ## Deploying
 
-Point a Netlify site at this repository, then set `SURVEY_PASSCODE` in
-**Site settings → Environment variables**. There's no build command; `netlify.toml`
-publishes `public/` and picks up the function.
+This folder is self-contained — its own `package.json`, `netlify.toml`, function
+and static files — so it deploys as a Netlify site of its own, separate from
+anything else in the repository around it. There's no build command; the
+`netlify.toml` here publishes `public/` and picks up the function.
 
-If this folder lives inside a larger repository, set **Base directory** to
-`ministry-survey` in the Netlify build settings and everything else follows.
+**As a second site on the same repository.** In Netlify, *Add new site → Import
+an existing project*, choose this repository, and set **Base directory** to
+`ministry-survey`. That gives a separate site, a separate URL, separate
+environment variables and a separate blob store from any other site built off the
+same repository. Nothing is shared between them.
+
+Then set `SURVEY_PASSCODE` under **Site settings → Environment variables**.
+
+**As its own repository.** Create an empty repository on GitHub, then lift this
+folder into it, keeping the history of these files:
+
+```
+git subtree split --prefix=ministry-survey -b survey-only
+git push git@github.com:<you>/ywam-cambodia-ministry-survey.git survey-only:main
+```
+
+Point Netlify at that repository instead and leave **Base directory** blank —
+everything else is the same.
 
 ## Local development
 
