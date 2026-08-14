@@ -5,6 +5,9 @@ export type NavItem = {
   /** Path relative to the locale segment, e.g. `/students`. */
   href: string;
   label: MessageKey;
+  /** Shorter label for the phone's tab bar, where a sidebar's wording does not
+   *  fit — "ផ្ទាំងគ្រប់គ្រង" needs more than a 100px tab can give it. */
+  shortLabel?: MessageKey;
   permission: Permission;
   /** Shown in the phone's bottom bar rather than behind "More". */
   primary?: boolean;
@@ -34,6 +37,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/dashboard",
     label: "nav.dashboard",
+    shortLabel: "nav.short.dashboard",
     permission: "school.read",
     primary: true,
     icon: "dashboard",
@@ -41,6 +45,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/attendance",
     label: "nav.attendance",
+    shortLabel: "nav.short.attendance",
     permission: "attendance.read",
     primary: true,
     icon: "attendance",
@@ -48,6 +53,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/students",
     label: "nav.students",
+    shortLabel: "nav.short.students",
     permission: "students.read",
     primary: true,
     icon: "students",

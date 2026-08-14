@@ -47,7 +47,7 @@ export function LocaleSwitch({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-full border border-ink-300 bg-white p-0.5",
+        "inline-flex shrink-0 items-center rounded-full border border-ink-300 bg-white p-0.5",
         pending && "opacity-60",
         className,
       )}
@@ -61,7 +61,7 @@ export function LocaleSwitch({ className }: { className?: string }) {
           onClick={() => switchTo(locale)}
           aria-current={locale === t.locale}
           className={cn(
-            "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+            "whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium leading-tight transition-colors",
             locale === t.locale
               ? "bg-brand-700 text-white"
               : "text-ink-600 hover:bg-ink-100",

@@ -75,3 +75,37 @@ standard in Cambodian school and government documents.
 
 **Recommend a Khmer-speaking teacher reads `km.ts` end to end before this goes in
 front of parents.**
+
+## What is built
+
+Phase 1, slices 1–7:
+
+| Area | State |
+| --- | --- |
+| Authentication, sessions, roles | Complete |
+| Activity log (audit trail) | Complete |
+| School, academic years, terms, grade levels, subjects | Complete |
+| Students, parents/guardians, teachers | Complete |
+| Classes, teacher assignment, enrollment, promotion | Complete |
+| **Attendance** | Complete |
+| Dashboard | Minimal — what's outstanding today and who is absent |
+
+Not yet built, in the order originally planned: the gradebook UI (the schema,
+assessments and per-subject averages already exist and appear on a student's
+profile), the report screens with CSV/Excel/PDF export, global search across the
+whole school, and the PWA service worker. Phase 2's arrival/departure tracking
+and parent notifications have their tables in place and unused.
+
+## Testing
+
+```bash
+npm run test:e2e          # reseeds, then runs Playwright on phone + desktop
+npm run test:e2e:only     # without reseeding
+```
+
+72 checks. They deliberately cover the things unit tests cannot: that a teacher
+cannot reach another class's children by URL, that a register is dated in the
+school's timezone and not the browser's, that a Khmer name is findable by
+search, and that changing one child's attendance writes exactly one audit entry.
+
+`CHROMIUM_PATH` can point at an existing Chromium instead of a downloaded one.

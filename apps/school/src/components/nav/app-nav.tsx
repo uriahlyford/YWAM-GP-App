@@ -107,7 +107,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
         <ul className="flex">
           {primary.map((item) => (
-            <li key={item.href} className="flex-1">
+            <li key={item.href} className="min-w-0 flex-1">
               <Link
                 href={`/${t.locale}${item.href}`}
                 aria-current={isActive(item.href) ? "page" : undefined}
@@ -116,13 +116,15 @@ export function BottomNav({ items }: { items: NavItem[] }) {
                   isActive(item.href) ? "text-brand-700" : "text-ink-500",
                 )}
               >
-                <NavIcon name={item.icon} className="h-6 w-6" />
-                <span className="max-w-full truncate">{t(item.label)}</span>
+                <NavIcon name={item.icon} className="h-6 w-6 shrink-0" />
+                <span className="w-full truncate text-center">
+                  {t(item.shortLabel ?? item.label)}
+                </span>
               </Link>
             </li>
           ))}
           {rest.length > 0 ? (
-            <li className="flex-1">
+            <li className="min-w-0 flex-1">
               <button
                 type="button"
                 onClick={() => setOpen(true)}

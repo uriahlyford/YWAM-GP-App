@@ -7,8 +7,13 @@ export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "en";
 export const LOCALE_COOKIE = "sala_locale";
 
+/**
+ * Deliberately short. The switcher lives in a 412px-wide header next to the
+ * school's name and a user menu; "English" spelled out wraps to one letter per
+ * line, and Khmer's larger type size makes it worse.
+ */
 export const LOCALE_LABELS: Record<Locale, string> = {
-  en: "English",
+  en: "EN",
   km: "ខ្មែរ",
 };
 
