@@ -26,15 +26,24 @@ function preferredLocale(request: NextRequest) {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const hasLocale = LOCALES.some(
+  const matched = LOCALES.find(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
   );
-  if (hasLocale) return NextResponse.next();
 
-  const locale = preferredLocale(request);
-  const url = request.nextUrl.clone();
-  url.pathname = `/${locale}${pathname === "/" ? "" : pathname}`;
-  return NextResponse.redirect(url);
+  if (!matched) {
+    const locale = preferredLocale(request);
+    const url = request.nextUrl.clone();
+    url.pathname = `/${locale}${pathname === "/" ? "" : pathname}`;
+    return NextResponse.redirect(url);
+  }
+
+  // Forward the locale and path so server-side code that has no access to the
+  // URL — the session helpers, which need to know where to send an unauthorised
+  // reader back to — can read them from headers().
+  const headers = new Headers(request.headers);
+  headers.set("x-locale", matched);
+  headers.set("x-pathname", pathname + request.nextUrl.search);
+  return NextResponse.next({ request: { headers } });
 }
 
 export const config = {

@@ -195,7 +195,10 @@ model User {
   isActive      Boolean @default(true)
 
   mustChangePassword Boolean   @default(false)
+  /// Consecutive failures *within a window* — see lastFailedLoginAt. A lifetime
+  /// counter would eventually lock out a teacher who mistypes twice a term.
   failedLoginCount   Int       @default(0)
+  lastFailedLoginAt  DateTime?
   lockedUntil        DateTime?
   lastLoginAt        DateTime?
 
