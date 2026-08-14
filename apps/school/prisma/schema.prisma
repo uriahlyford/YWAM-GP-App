@@ -1,0 +1,773 @@
+// Sala — school management for Cambodian primary schools.
+//
+// Two rules run through this whole schema:
+//
+//  1. Every row that describes a person, a class or an event carries `schoolId`.
+//     That is the multi-campus preparation. It costs nothing today and is the one
+//     thing that is genuinely painful to retrofit once there is real data.
+//
+//  2. Nothing about a child is hard-deleted. Students archive, enrollments end,
+//     users deactivate. History has to stay readable years later.
+//
+// Tables for Phase 2 (arrival/departure, parent notifications) and Phase 3 (QR /
+// card credentials) are defined here and left unused. Writing them now is what
+// lets those features be added later without a migration that touches live data.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  SUPER_ADMIN
+  SCHOOL_ADMIN
+  TEACHER
+  PARENT
+}
+
+enum Locale {
+  EN
+  KM
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  GRADUATED
+  TRANSFERRED
+  WITHDRAWN
+}
+
+enum EnrollmentStatus {
+  ENROLLED
+  COMPLETED
+  TRANSFERRED_OUT
+  WITHDRAWN
+}
+
+/// LEFT_EARLY is a same-day departure, distinct from EXCUSED (a whole day
+/// authorised in advance). Cambodian primary schools track both.
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+  LEFT_EARLY
+}
+
+enum ClassTeacherRole {
+  HOMEROOM
+  SUBJECT
+  ASSISTANT
+}
+
+enum GuardianRelationship {
+  MOTHER
+  FATHER
+  GRANDMOTHER
+  GRANDFATHER
+  AUNT
+  UNCLE
+  SIBLING
+  GUARDIAN
+  OTHER
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  ARCHIVE
+  RESTORE
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+  PASSWORD_CHANGE
+  EXPORT
+}
+
+// --- Phase 2 / 3 ---
+
+enum PresenceType {
+  ARRIVAL
+  DEPARTURE
+}
+
+enum PresenceMethod {
+  MANUAL
+  QR
+  CARD
+  NFC
+}
+
+enum CredentialKind {
+  QR
+  CARD
+  NFC
+}
+
+enum NotificationEvent {
+  STUDENT_ARRIVED
+  STUDENT_DEPARTED
+  STUDENT_ABSENT
+  STUDENT_LATE
+  ANNOUNCEMENT
+  GRADES_AVAILABLE
+}
+
+enum NotificationChannel {
+  SMS
+  TELEGRAM
+  EMAIL
+  PUSH
+}
+
+enum DeliveryStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+// ---------------------------------------------------------------------------
+// Tenancy
+// ---------------------------------------------------------------------------
+
+model School {
+  id        String  @id @default(uuid(7))
+  code      String  @unique
+  name      String
+  nameKm    String?
+  /// IANA zone. Every calendar date in this school is computed in this zone,
+  /// never from a UTC timestamp — see src/lib/date.
+  timezone  String  @default("Asia/Phnom_Penh")
+  address   String?
+  addressKm String?
+  phone     String?
+  email     String?
+  logoKey   String?
+  isActive  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships     Membership[]
+  teachers        TeacherProfile[]
+  guardians       Guardian[]
+  students        Student[]
+  academicYears   AcademicYear[]
+  gradeLevels     GradeLevel[]
+  subjects        Subject[]
+  classes         Class[]
+  auditLogs       AuditLog[]
+  presenceEvents  PresenceEvent[]
+  notifications   Notification[]
+
+  @@index([isActive])
+}
+
+// ---------------------------------------------------------------------------
+// Identity and access
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String  @id @default(uuid(7))
+  username      String  @unique
+  email         String? @unique
+  passwordHash  String
+  displayName   String
+  displayNameKm String?
+  locale        Locale  @default(EN)
+  isActive      Boolean @default(true)
+
+  mustChangePassword Boolean   @default(false)
+  failedLoginCount   Int       @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships    Membership[]
+  sessions       Session[]
+  teacherProfile TeacherProfile?
+  guardian       Guardian?
+
+  auditLogs          AuditLog[]          @relation("AuditActor")
+  attendanceTaken    AttendanceSession[] @relation("AttendanceTakenBy")
+  assessmentsCreated Assessment[]        @relation("AssessmentCreatedBy")
+  gradesEntered      GradeRecord[]       @relation("GradeEnteredBy")
+  presenceRecorded   PresenceEvent[]     @relation("PresenceRecordedBy")
+
+  @@index([isActive])
+}
+
+/// A user's role *at one school*. Roles live here rather than on User so the
+/// same person can be a teacher at one campus and an admin at another without a
+/// schema change. SUPER_ADMIN is still scoped to a row, but the access helpers
+/// treat it as global.
+model Membership {
+  id       String @id @default(uuid(7))
+  userId   String
+  schoolId String
+  role     Role
+
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, schoolId, role])
+  @@index([schoolId, role])
+}
+
+/// `id` is the SHA-256 of the session token that the browser holds, so a stolen
+/// database gives an attacker nothing they can present as a cookie. Sessions are
+/// rows rather than JWTs specifically so an admin can revoke one immediately —
+/// this application holds children's data.
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// People
+// ---------------------------------------------------------------------------
+
+model TeacherProfile {
+  id        String    @id @default(uuid(7))
+  userId    String    @unique
+  schoolId  String
+  staffCode String?
+  phone     String?
+  hireDate  DateTime? @db.Date
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  homeroomClasses Class[]        @relation("HomeroomTeacher")
+  classAssignments ClassTeacher[]
+
+  @@unique([schoolId, staffCode])
+  @@index([schoolId])
+}
+
+/// A parent or guardian. `userId` stays null until the Phase 2 parent portal
+/// exists — a guardian is a contactable person first and a login second.
+model Guardian {
+  id              String               @id @default(uuid(7))
+  schoolId        String
+  userId          String?              @unique
+  name            String
+  nameKm          String?
+  /// Stored as typed, normalised to +855 on the way in.
+  phone           String
+  phone2          String?
+  email           String?
+  occupation      String?
+  address         String?
+  preferredLocale Locale               @default(KM)
+  isActive        Boolean              @default(true)
+  notes           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school      School                   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user        User?                    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  students    StudentGuardian[]
+  preferences NotificationPreference[]
+  deliveries  Delivery[]
+
+  @@index([schoolId])
+  @@index([schoolId, phone])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([nameKm(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin)
+}
+
+/// Bilingual names are two separate pairs, not one transliterated field: a
+/// student's legal Khmer name and its Latin spelling are both authoritative, and
+/// `englishName` is the chosen English name many Cambodian students also use.
+///
+/// There is deliberately no `classId` here. Class membership is an Enrollment, so
+/// a student's history survives promotion to the next grade.
+model Student {
+  id          String  @id @default(uuid(7))
+  schoolId    String
+  studentCode String
+  firstName   String
+  lastName    String
+  firstNameKm String?
+  lastNameKm  String?
+  englishName String?
+
+  dateOfBirth DateTime? @db.Date
+  gender      Gender?
+  /// Object-storage key, never a public URL. Photos of children are served
+  /// through short-lived signed URLs only.
+  photoKey    String?
+
+  enrollmentDate DateTime      @db.Date
+  status         StudentStatus @default(ACTIVE)
+
+  address        String?
+  phone          String?
+  /// Free-text fallback for a contact who is not a Guardian record.
+  emergencyNote  String?
+  medicalNote    String?
+  notes          String?
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  school            School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  guardians         StudentGuardian[]
+  enrollments       Enrollment[]
+  attendanceRecords AttendanceRecord[]
+  gradeRecords      GradeRecord[]
+  presenceEvents    PresenceEvent[]
+  credentials       StudentCredential[]
+  notifications     Notification[]
+
+  @@unique([schoolId, studentCode])
+  @@index([schoolId, status])
+  @@index([schoolId, lastName, firstName])
+  // Khmer is written without spaces between words, so Postgres full-text search
+  // indexes a Khmer name as one unsearchable token. Trigrams work on Khmer,
+  // Latin and typos alike, which is why global search uses ILIKE against these.
+  @@index([firstName(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([lastName(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([firstNameKm(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([lastNameKm(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([englishName(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([studentCode(ops: raw("gin_trgm_ops"))], type: Gin)
+}
+
+model StudentGuardian {
+  id                String               @id @default(uuid(7))
+  studentId         String
+  guardianId        String
+  relationship      GuardianRelationship
+  isPrimary         Boolean              @default(false)
+  isEmergencyContact Boolean             @default(false)
+  canPickUp         Boolean              @default(true)
+
+  createdAt DateTime @default(now())
+
+  student  Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guardian Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, guardianId])
+  @@index([guardianId])
+}
+
+// ---------------------------------------------------------------------------
+// Academic structure
+// ---------------------------------------------------------------------------
+
+model AcademicYear {
+  id        String   @id @default(uuid(7))
+  schoolId  String
+  name      String
+  nameKm    String?
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  isCurrent Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  terms       Term[]
+  classes     Class[]
+  enrollments Enrollment[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId, isCurrent])
+}
+
+model Term {
+  id             String   @id @default(uuid(7))
+  academicYearId String
+  name           String
+  nameKm         String?
+  ordinal        Int
+  startDate      DateTime @db.Date
+  endDate        DateTime @db.Date
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  assessments  Assessment[]
+
+  @@unique([academicYearId, ordinal])
+}
+
+/// Grade names are school-editable — "Kindergarten"/"មត្តេយ្យ" through Grade 6,
+/// but a school may run different levels. `ordinal` drives sorting and promotion.
+model GradeLevel {
+  id       String  @id @default(uuid(7))
+  schoolId String
+  name     String
+  nameKm   String?
+  ordinal  Int
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school  School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classes Class[]
+
+  @@unique([schoolId, ordinal])
+  @@index([schoolId, isActive])
+}
+
+model Subject {
+  id       String  @id @default(uuid(7))
+  schoolId String
+  code     String
+  name     String
+  nameKm   String?
+  ordinal  Int     @default(0)
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assessments Assessment[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId, isActive])
+}
+
+model Class {
+  id             String  @id @default(uuid(7))
+  schoolId       String
+  academicYearId String
+  gradeLevelId   String
+  name           String
+  nameKm         String?
+  room           String?
+  homeroomTeacherId String?
+  isActive       Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school          School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear    AcademicYear    @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  gradeLevel      GradeLevel      @relation(fields: [gradeLevelId], references: [id])
+  homeroomTeacher TeacherProfile? @relation("HomeroomTeacher", fields: [homeroomTeacherId], references: [id], onDelete: SetNull)
+
+  teachers           ClassTeacher[]
+  enrollments        Enrollment[]
+  attendanceSessions AttendanceSession[]
+  assessments        Assessment[]
+
+  @@unique([academicYearId, name])
+  @@index([schoolId, academicYearId])
+  @@index([gradeLevelId])
+}
+
+/// The authorization edge. Every teacher-scoped query joins through this table —
+/// it is what stops a teacher reading another class's children.
+model ClassTeacher {
+  id        String           @id @default(uuid(7))
+  classId   String
+  teacherId String
+  role      ClassTeacherRole @default(SUBJECT)
+
+  createdAt DateTime @default(now())
+
+  class   Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher TeacherProfile @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, teacherId, role])
+  @@index([teacherId])
+}
+
+model Enrollment {
+  id             String           @id @default(uuid(7))
+  studentId      String
+  classId        String
+  academicYearId String
+  status         EnrollmentStatus @default(ENROLLED)
+  startDate      DateTime         @db.Date
+  endDate        DateTime?        @db.Date
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class        Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classId])
+  @@index([classId, status])
+  @@index([studentId])
+}
+
+// ---------------------------------------------------------------------------
+// Attendance
+// ---------------------------------------------------------------------------
+
+/// One row per class per day. Splitting the session from the records is what
+/// makes "which classes have not submitted attendance today" a single indexed
+/// lookup rather than a scan of every child's record.
+///
+/// `date` is a calendar date in the school's timezone, never derived from a UTC
+/// timestamp — at UTC+7 that mistake files a 06:45 roll call against yesterday.
+model AttendanceSession {
+  id          String    @id @default(uuid(7))
+  classId     String
+  date        DateTime  @db.Date
+  takenByUserId String
+  takenAt     DateTime  @default(now())
+  finalizedAt DateTime?
+  note        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  class   Class              @relation(fields: [classId], references: [id], onDelete: Cascade)
+  takenBy User               @relation("AttendanceTakenBy", fields: [takenByUserId], references: [id])
+  records AttendanceRecord[]
+
+  @@unique([classId, date])
+  @@index([date])
+}
+
+model AttendanceRecord {
+  id          String           @id @default(uuid(7))
+  sessionId   String
+  studentId   String
+  status      AttendanceStatus
+  minutesLate Int?
+  note        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, studentId])
+  @@index([studentId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Assessment
+// ---------------------------------------------------------------------------
+
+model Assessment {
+  id        String   @id @default(uuid(7))
+  schoolId  String
+  classId   String
+  subjectId String
+  termId    String
+  title     String
+  titleKm   String?
+  date      DateTime @db.Date
+  maxScore  Decimal  @db.Decimal(6, 2)
+  weight    Decimal  @default(1) @db.Decimal(6, 2)
+  createdByUserId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  class     Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject       @relation(fields: [subjectId], references: [id])
+  term      Term          @relation(fields: [termId], references: [id], onDelete: Cascade)
+  createdBy User          @relation("AssessmentCreatedBy", fields: [createdByUserId], references: [id])
+  records   GradeRecord[]
+
+  @@index([classId, termId])
+  @@index([subjectId])
+  @@index([schoolId])
+}
+
+model GradeRecord {
+  id           String   @id @default(uuid(7))
+  assessmentId String
+  studentId    String
+  /// Null means "not yet marked", which is different from a zero.
+  score        Decimal? @db.Decimal(6, 2)
+  comment      String?
+  enteredByUserId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enteredBy  User       @relation("GradeEnteredBy", fields: [enteredByUserId], references: [id])
+
+  @@unique([assessmentId, studentId])
+  @@index([studentId])
+}
+
+// ---------------------------------------------------------------------------
+// Accountability
+// ---------------------------------------------------------------------------
+
+/// Written by the withAudit() wrapper around every mutation. `before`/`after`
+/// hold only the fields that changed, with anything sensitive redacted.
+model AuditLog {
+  id          String      @id @default(uuid(7))
+  schoolId    String?
+  actorUserId String?
+  action      AuditAction
+  entityType  String
+  entityId    String?
+  /// Human-readable subject, e.g. a student's name, kept so the log still reads
+  /// correctly after the row it points at has changed.
+  summary     String?
+  before      Json?
+  after       Json?
+  ip          String?
+  userAgent   String?
+
+  createdAt DateTime @default(now())
+
+  school School? @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  actor  User?   @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, createdAt])
+  @@index([entityType, entityId])
+  @@index([actorUserId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 — arrival / departure. Defined now, written to later.
+// ---------------------------------------------------------------------------
+
+model PresenceEvent {
+  id               String         @id @default(uuid(7))
+  schoolId         String
+  studentId        String
+  type             PresenceType
+  occurredAt       DateTime
+  /// Calendar date in the school's timezone, denormalised so "today's arrivals"
+  /// is an index hit rather than a timezone conversion across every row.
+  localDate        DateTime       @db.Date
+  method           PresenceMethod @default(MANUAL)
+  recordedByUserId String?
+  deviceId         String?
+  note             String?
+
+  createdAt DateTime @default(now())
+
+  school     School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student    Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  recordedBy User?   @relation("PresenceRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId, localDate])
+  @@index([studentId, occurredAt])
+}
+
+/// Phase 3. Tokens are hashed for the same reason session tokens are: a card
+/// dump must not let anyone check a child in or out.
+model StudentCredential {
+  id          String         @id @default(uuid(7))
+  studentId   String
+  kind        CredentialKind
+  hashedToken String         @unique
+  label       String?
+  issuedAt    DateTime       @default(now())
+  revokedAt   DateTime?
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 — notifications. The split below is the whole point: `Notification`
+// records what happened, `Delivery` records one attempt per channel. Adding
+// Telegram, or swapping SMS provider, touches the provider registry and nothing
+// else.
+// ---------------------------------------------------------------------------
+
+model NotificationPreference {
+  id         String              @id @default(uuid(7))
+  guardianId String
+  event      NotificationEvent
+  channel    NotificationChannel
+  enabled    Boolean             @default(true)
+
+  guardian Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  @@unique([guardianId, event, channel])
+}
+
+model Notification {
+  id               String            @id @default(uuid(7))
+  schoolId         String
+  event            NotificationEvent
+  subjectStudentId String?
+  /// Message variables, not rendered text — the body is rendered per guardian in
+  /// their own language at delivery time.
+  payload          Json
+  createdAt        DateTime          @default(now())
+
+  school     School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  student    Student?   @relation(fields: [subjectStudentId], references: [id], onDelete: SetNull)
+  deliveries Delivery[]
+
+  @@index([schoolId, createdAt])
+}
+
+model Delivery {
+  id             String              @id @default(uuid(7))
+  notificationId String
+  guardianId     String
+  channel        NotificationChannel
+  status         DeliveryStatus      @default(QUEUED)
+  locale         Locale
+  renderedBody   String?
+  providerRef    String?
+  error          String?
+  sentAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  guardian     Guardian     @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([guardianId])
+}

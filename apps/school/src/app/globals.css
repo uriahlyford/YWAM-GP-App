@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+/*
+ * Sala design tokens.
+ *
+ * One light theme, committed to. This is software used in bright classrooms and
+ * on phones held at arm's length in a school yard; a dark mode would be a second
+ * surface to keep correct for no one who asked for it.
+ */
+@theme {
+  --font-sans: var(--font-latin), var(--font-khmer), ui-sans-serif, system-ui,
+    sans-serif;
+  --font-khmer: var(--font-khmer-family), "Noto Sans Khmer", sans-serif;
+
+  /* Teal, because it reads as calm and institutional without being cold, and
+     stays legible against the warm neutrals below. */
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-200: #99f6e4;
+  --color-brand-300: #5eead4;
+  --color-brand-400: #2dd4bf;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-800: #115e59;
+  --color-brand-900: #134e4a;
+
+  /* Warm neutrals — paperlike, less clinical than pure grey. */
+  --color-ink-50: #faf9f7;
+  --color-ink-100: #f4f2ee;
+  --color-ink-200: #e7e4dd;
+  --color-ink-300: #d3cfc5;
+  --color-ink-400: #a8a296;
+  --color-ink-500: #7d776b;
+  --color-ink-600: #5c5751;
+  --color-ink-700: #433f3a;
+  --color-ink-800: #2b2825;
+  --color-ink-900: #1a1816;
+
+  /* Attendance statuses. These five colours are load-bearing: a teacher reads
+     the class by colour before reading any label, so they must stay distinct at
+     a glance and never be reused for anything else. */
+  --color-present-50: #ecfdf5;
+  --color-present-500: #10b981;
+  --color-present-700: #047857;
+  --color-absent-50: #fef2f2;
+  --color-absent-500: #ef4444;
+  --color-absent-700: #b91c1c;
+  --color-late-50: #fffbeb;
+  --color-late-500: #f59e0b;
+  --color-late-700: #b45309;
+  --color-excused-50: #eff6ff;
+  --color-excused-500: #3b82f6;
+  --color-excused-700: #1d4ed8;
+  --color-early-50: #f5f3ff;
+  --color-early-500: #8b5cf6;
+  --color-early-700: #6d28d9;
+
+  --radius-card: 0.875rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* Stops iOS Safari zooming the page when a form field is focused, which
+       otherwise happens on every attendance note field. */
+    text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-ink-50);
+    color: var(--color-ink-800);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+   * Khmer script sits on a taller body with stacked subscript consonants
+   * (ជើងអក្សរ) below the baseline. At the same px size as Latin it reads smaller
+   * and collides with the line below, so Khmer gets a nudge in size and a lot
+   * more leading. Applied by :lang so a Khmer name inside an English page — a
+   * student's name in a list, say — is spaced correctly too.
+   */
+  :lang(km) {
+    font-size: 1.0625em;
+    line-height: 1.85;
+    /* Khmer has no inter-word spaces; breaking anywhere is normal and expected. */
+    word-break: normal;
+    overflow-wrap: anywhere;
+    line-break: normal;
+  }
+
+  :lang(km) :is(h1, h2, h3, h4) {
+    line-height: 1.5;
+  }
+
+  /* Never letterspace Khmer — it separates the parts of a single cluster. */
+  :lang(km) {
+    letter-spacing: normal;
+  }
+
+  button,
+  [role="button"],
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  /* 44px is the smallest reliably tappable target on a phone; attendance uses
+     considerably more than that. */
+  .tap-target {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+}
