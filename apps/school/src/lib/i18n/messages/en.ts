@@ -144,6 +144,56 @@ export const en = {
   "relationship.GUARDIAN": "Guardian",
   "relationship.OTHER": "Other",
 
+  // --- Settings ---
+  "settings.title": "Settings",
+  "settings.subtitle": "The school, its calendar, and what it teaches.",
+  "settings.tab.school": "School",
+  "settings.tab.years": "Academic years",
+  "settings.tab.gradeLevels": "Grade levels",
+  "settings.tab.subjects": "Subjects",
+
+  "school.details": "School details",
+  "school.details.hint": "Shown on reports and report cards.",
+  "school.timezone": "Time zone",
+  "school.timezone.hint":
+    "Attendance dates are decided in this zone, not in UTC.",
+
+  "year.title": "Academic years",
+  "year.subtitle": "One year is current. Classes and enrollment belong to a year.",
+  "year.add": "Add an academic year",
+  "year.name": "Name",
+  "year.name.hint": "For example 2026–2027",
+  "year.start": "First day",
+  "year.end": "Last day",
+  "year.current": "This is the current year",
+  "year.currentBadge": "Current",
+  "year.terms": "Terms",
+  "year.noTerms": "No terms yet",
+
+  "term.add": "Add a term",
+  "term.name": "Name",
+  "term.name.hint": "For example Semester 1",
+  "term.ordinal": "Order",
+
+  "gradeLevel.title": "Grade levels",
+  "gradeLevel.subtitle":
+    "Rename these to match what your school calls them. Order decides sorting and promotion.",
+  "gradeLevel.add": "Add a grade level",
+  "gradeLevel.ordinal": "Order",
+  "gradeLevel.inUse.one": "{count} class",
+  "gradeLevel.inUse.other": "{count} classes",
+
+  "subject.title": "Subjects",
+  "subject.subtitle": "What grades can be recorded against.",
+  "subject.add": "Add a subject",
+  "subject.code": "Short code",
+  "subject.code.hint": "Appears in the gradebook, e.g. MAT",
+  "subject.ordinal": "Order",
+
+  "field.active": "In use",
+  "field.inactive": "Not in use",
+  "error.duplicateCode": "That code is already used by another subject",
+
   // --- Activity log ---
   "audit.title": "Activity log",
   "audit.subtitle": "Who changed what, and when.",

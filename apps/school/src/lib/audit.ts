@@ -27,19 +27,28 @@ const REDACTED_KEYS = new Set([
   "token",
 ]);
 
+/**
+ * Bookkeeping columns, dropped before diffing. `updatedAt` changes on every
+ * write by definition, so leaving it in would put a meaningless line in every
+ * single entry and bury the field the reader actually came for.
+ */
+const IGNORED_KEYS = new Set(["updatedAt", "createdAt"]);
+
 type Plain = Record<string, unknown>;
 
-function redact(value: Plain): Plain {
+function redact(value: Plain, top = true): Plain {
   const out: Plain = {};
   for (const [key, v] of Object.entries(value)) {
-    if (REDACTED_KEYS.has(key)) {
+    if (top && IGNORED_KEYS.has(key)) {
+      continue;
+    } else if (REDACTED_KEYS.has(key)) {
       out[key] = "[redacted]";
     } else if (v instanceof Date) {
       out[key] = v.toISOString();
     } else if (typeof v === "bigint") {
       out[key] = v.toString();
     } else if (v && typeof v === "object" && !Array.isArray(v)) {
-      out[key] = redact(v as Plain);
+      out[key] = redact(v as Plain, false);
     } else {
       out[key] = v ?? null;
     }

@@ -145,6 +145,58 @@ export const km: Messages = {
   "relationship.GUARDIAN": "អាណាព្យាបាល",
   "relationship.OTHER": "ផ្សេងទៀត",
 
+  // --- Settings ---
+  "settings.title": "ការកំណត់",
+  "settings.subtitle": "សាលារៀន ប្រតិទិន និងមុខវិជ្ជាដែលបង្រៀន។",
+  "settings.tab.school": "សាលារៀន",
+  "settings.tab.years": "ឆ្នាំសិក្សា",
+  "settings.tab.gradeLevels": "កម្រិតថ្នាក់",
+  "settings.tab.subjects": "មុខវិជ្ជា",
+
+  "school.details": "ព័ត៌មានសាលារៀន",
+  "school.details.hint": "បង្ហាញលើរបាយការណ៍ និងសៀវភៅពិន្ទុ។",
+  "school.timezone": "តំបន់ម៉ោង",
+  "school.timezone.hint":
+    "កាលបរិច្ឆេទវត្តមានត្រូវបានកំណត់តាមតំបន់ម៉ោងនេះ មិនមែនតាម UTC ទេ។",
+
+  "year.title": "ឆ្នាំសិក្សា",
+  "year.subtitle":
+    "មានឆ្នាំសិក្សាតែមួយប៉ុណ្ណោះជាឆ្នាំបច្ចុប្បន្ន។ ថ្នាក់ និងការចុះឈ្មោះជាកម្មសិទ្ធិរបស់ឆ្នាំសិក្សា។",
+  "year.add": "បន្ថែមឆ្នាំសិក្សា",
+  "year.name": "ឈ្មោះ",
+  "year.name.hint": "ឧទាហរណ៍ ២០២៦–២០២៧",
+  "year.start": "ថ្ងៃចាប់ផ្តើម",
+  "year.end": "ថ្ងៃបញ្ចប់",
+  "year.current": "នេះជាឆ្នាំសិក្សាបច្ចុប្បន្ន",
+  "year.currentBadge": "បច្ចុប្បន្ន",
+  "year.terms": "ឆមាស",
+  "year.noTerms": "មិនទាន់មានឆមាស",
+
+  "term.add": "បន្ថែមឆមាស",
+  "term.name": "ឈ្មោះ",
+  "term.name.hint": "ឧទាហរណ៍ ឆមាសទី១",
+  "term.ordinal": "លំដាប់",
+
+  "gradeLevel.title": "កម្រិតថ្នាក់",
+  "gradeLevel.subtitle":
+    "អាចប្តូរឈ្មោះតាមសាលារបស់អ្នក។ លំដាប់កំណត់ការតម្រៀប និងការឡើងថ្នាក់។",
+  "gradeLevel.add": "បន្ថែមកម្រិតថ្នាក់",
+  "gradeLevel.ordinal": "លំដាប់",
+  // Khmer has no grammatical plural; both forms are the same string.
+  "gradeLevel.inUse.one": "{count} ថ្នាក់",
+  "gradeLevel.inUse.other": "{count} ថ្នាក់",
+
+  "subject.title": "មុខវិជ្ជា",
+  "subject.subtitle": "មុខវិជ្ជាដែលអាចកត់ត្រាពិន្ទុបាន។",
+  "subject.add": "បន្ថែមមុខវិជ្ជា",
+  "subject.code": "កូដសង្ខេប",
+  "subject.code.hint": "បង្ហាញក្នុងសៀវភៅពិន្ទុ ឧ. MAT",
+  "subject.ordinal": "លំដាប់",
+
+  "field.active": "កំពុងប្រើ",
+  "field.inactive": "មិនប្រើ",
+  "error.duplicateCode": "កូដនេះត្រូវបានប្រើដោយមុខវិជ្ជាផ្សេងរួចហើយ",
+
   // --- Activity log ---
   "audit.title": "កំណត់ហេតុសកម្មភាព",
   "audit.subtitle": "អ្នកណាបានផ្លាស់ប្តូរអ្វី និងនៅពេលណា។",

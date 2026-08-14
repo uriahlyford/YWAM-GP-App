@@ -31,8 +31,23 @@ function interpolate(template: string, vars?: Vars): string {
   );
 }
 
+/**
+ * The base of any key that has an `.other` form — so `t.plural` can only be
+ * called with a key that actually has plural variants defined.
+ */
+type BaseOfOther<K> = K extends `${infer Base}.other` ? Base : never;
+export type PluralKey = BaseOfOther<MessageKey>;
+
 export type Translator = {
   (key: MessageKey, vars?: Vars): string;
+  /**
+   * Plural form of `<key>`, looked up as `<key>.one` / `<key>.other` and given
+   * `{count}`. English needs the distinction; Khmer has no grammatical plural,
+   * so both its forms are the same string — which is exactly why this goes
+   * through Intl.PluralRules rather than an `n === 1` check written into a
+   * component.
+   */
+  plural: (key: PluralKey, count: number, vars?: Vars) => string;
   locale: Locale;
 };
 
@@ -42,6 +57,18 @@ export function createTranslator(
 ): Translator {
   const t = ((key: MessageKey, vars?: Vars) =>
     interpolate(messages[key] ?? en[key] ?? key, vars)) as Translator;
+
+  const rules = new Intl.PluralRules(locale === "km" ? "km-KH" : "en-US");
+
+  t.plural = (key, count, vars) => {
+    const category = rules.select(count);
+    const specific = `${key}.${category}` as MessageKey;
+    const fallback = `${key}.other` as MessageKey;
+    const template =
+      messages[specific] ?? messages[fallback] ?? en[specific] ?? en[fallback] ?? key;
+    return interpolate(template, { count, ...vars });
+  };
+
   t.locale = locale;
   return t;
 }
