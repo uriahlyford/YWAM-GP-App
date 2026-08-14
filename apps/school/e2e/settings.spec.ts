@@ -71,12 +71,15 @@ test("the grade-level list counts its classes with the right plural", async ({
   await signIn(page, "admin");
   await page.goto("/en/settings/grade-levels");
 
-  // The seed gives Kindergarten one class and Grade 1 two. English needs both
-  // forms; Khmer, which has no grammatical plural, needs neither — the point is
-  // that neither language gets "1 classes".
+  // The seed gives Grade 6 one class and Grade 1 two. Grade 6 is used here
+  // rather than Kindergarten because the class tests create their classes at the
+  // form's default grade level, which is the first one.
   const rows = page.locator("main details");
-  await expect(rows.filter({ hasText: "Kindergarten" })).toContainText("1 class");
-  await expect(rows.filter({ hasText: "Grade 1" })).toContainText("2 classes");
+  await expect(rows.filter({ hasText: "Grade 6" })).toContainText("1 class");
+  await expect(rows.filter({ hasText: "Grade 1" }).first()).toContainText("2 classes");
+
+  // The invariant that actually matters: English never renders "1 classes".
+  await expect(page.locator("main")).not.toContainText("1 classes");
 });
 
 test("a teacher cannot reach settings", async ({ page }) => {

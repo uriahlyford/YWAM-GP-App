@@ -3,6 +3,7 @@ import { cache } from "react";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import type { Prisma } from "@/generated/prisma/client";
 import { Role } from "@/generated/prisma/enums";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "@/lib/i18n";
 import { readSessionToken, validateSession, type SessionUser } from "./session";
@@ -154,10 +155,24 @@ export const teacherClassIds = cache(
 );
 
 /**
+ * Combine an access scope with additional conditions.
+ *
+ * Always use this rather than an object spread. `{ ...scope, id }` looks
+ * equivalent and is not: the caller's `id` silently replaces the scope's own
+ * `id` constraint, which removes the restriction entirely and hands a teacher
+ * any class in the school. `AND` cannot be overwritten by a later key.
+ */
+export function scoped<T extends object>(scope: T, ...extra: T[]): { AND: T[] } {
+  return { AND: [scope, ...extra] };
+}
+
+/**
  * A `where` fragment restricting Class queries to what the caller may see.
  * Administrators see the whole campus; a teacher sees their own classes.
  */
-export async function visibleClassWhere(auth: AuthContext) {
+export async function visibleClassWhere(
+  auth: AuthContext,
+): Promise<Prisma.ClassWhereInput> {
   if (can(auth, "classes.write")) {
     return { schoolId: auth.schoolId };
   }
@@ -169,14 +184,16 @@ export async function visibleClassWhere(auth: AuthContext) {
  * A `where` fragment restricting Student queries. This is the one that matters:
  * a teacher may only reach children enrolled in a class they teach.
  */
-export async function visibleStudentWhere(auth: AuthContext) {
+export async function visibleStudentWhere(
+  auth: AuthContext,
+): Promise<Prisma.StudentWhereInput> {
   if (can(auth, "students.write")) {
     return { schoolId: auth.schoolId };
   }
   const ids = await teacherClassIds(auth);
   return {
     schoolId: auth.schoolId,
-    enrollments: { some: { classId: { in: ids }, status: "ENROLLED" as const } },
+    enrollments: { some: { classId: { in: ids }, status: "ENROLLED" } },
   };
 }
 
@@ -205,7 +222,7 @@ export async function requireStudentAccess(
 ): Promise<void> {
   const where = await visibleStudentWhere(auth);
   const found = await prisma.student.findFirst({
-    where: { ...where, id: studentId },
+    where: scoped(where, { id: studentId }),
     select: { id: true },
   });
   if (!found) throw new ForbiddenError("not your student");

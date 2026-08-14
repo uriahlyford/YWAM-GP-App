@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { getAuth, visibleStudentWhere } from "@/lib/auth/context";
+import { getAuth, scoped, visibleStudentWhere } from "@/lib/auth/context";
 import { etagFor, get } from "@/lib/storage";
 
 /**
@@ -22,7 +22,7 @@ export async function GET(
 
   const scope = await visibleStudentWhere(auth);
   const student = await prisma.student.findFirst({
-    where: { ...scope, photoKey: key },
+    where: scoped(scope, { photoKey: key }),
     select: { id: true },
   });
   if (!student) return new Response(null, { status: 404 });

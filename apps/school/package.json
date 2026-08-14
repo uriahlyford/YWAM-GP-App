@@ -14,7 +14,8 @@
     "db:seed": "tsx --conditions=react-server prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
-    "test:e2e": "playwright test"
+    "test:e2e": "npm run db:seed && playwright test",
+    "test:e2e:only": "playwright test"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

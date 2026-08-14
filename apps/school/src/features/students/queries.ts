@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { StudentStatus } from "@/generated/prisma/enums";
-import { type AuthContext, visibleStudentWhere } from "@/lib/auth/context";
+import { type AuthContext, scoped, visibleStudentWhere } from "@/lib/auth/context";
 
 export const STUDENT_PAGE_SIZE = 30;
 
@@ -44,15 +44,19 @@ function searchWhere(q: string): Prisma.StudentWhereInput {
 export async function listStudents(auth: AuthContext, filters: StudentFilters) {
   const scope = await visibleStudentWhere(auth);
 
-  const where: Prisma.StudentWhereInput = {
-    ...scope,
-    archivedAt: null,
-    ...(filters.status ? { status: filters.status } : {}),
+  // Composed with AND, never spread. The class filter comes from the URL and
+  // sets `enrollments`, which is the very key a teacher's scope uses — a spread
+  // would let `?class=<someone else's class>` overwrite the restriction and
+  // list that class's children.
+  const where: Prisma.StudentWhereInput = scoped<Prisma.StudentWhereInput>(
+    scope,
+    { archivedAt: null },
+    ...(filters.status ? [{ status: filters.status }] : []),
     ...(filters.classId
-      ? { enrollments: { some: { classId: filters.classId, status: "ENROLLED" } } }
-      : {}),
-    ...searchWhere(filters.q ?? ""),
-  };
+      ? [{ enrollments: { some: { classId: filters.classId, status: "ENROLLED" as const } } }]
+      : []),
+    searchWhere(filters.q ?? ""),
+  );
 
   const [total, students] = await Promise.all([
     prisma.student.count({ where }),
@@ -92,7 +96,7 @@ export async function getStudent(auth: AuthContext, id: string) {
   const scope = await visibleStudentWhere(auth);
 
   return prisma.student.findFirst({
-    where: { ...scope, id },
+    where: scoped(scope, { id }),
     include: {
       guardians: {
         include: { guardian: true },
