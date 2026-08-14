@@ -73,6 +73,8 @@ const ISSUE_MESSAGES: Record<string, MessageKey> = {
   invalidPhone: "error.invalidPhone",
   invalidEmail: "error.invalidEmail",
   invalidDate: "error.invalidDate",
+  invalidUsername: "error.invalidUsername",
+  passwordTooShort: "auth.passwordTooShort",
 };
 
 /** Turn zod issues into per-field message keys the form can render. */
