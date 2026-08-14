@@ -9,6 +9,7 @@ import { saveRegister } from "./actions";
 import type { Register, RegisterStudent } from "./queries";
 import { Button } from "@/components/ui/button";
 import { Alert, Card } from "@/components/ui/surface";
+import { StatusIcon } from "@/components/ui/status-pill";
 import { Input } from "@/components/ui/field";
 import { Avatar } from "@/components/ui/avatar";
 import { cn } from "@/lib/cn";
@@ -40,14 +41,6 @@ const STATUS_ORDER: AttendanceStatus[] = [
   AttendanceStatus.LEFT_EARLY,
 ];
 
-const SWATCH: Record<AttendanceStatus, string> = {
-  PRESENT: "bg-present-500",
-  ABSENT: "bg-absent-500",
-  LATE: "bg-late-500",
-  EXCUSED: "bg-excused-500",
-  LEFT_EARLY: "bg-early-500",
-};
-
 const ROW_TINT: Record<AttendanceStatus, string> = {
   PRESENT: "bg-white",
   ABSENT: "bg-absent-50",
@@ -56,12 +49,17 @@ const ROW_TINT: Record<AttendanceStatus, string> = {
   LEFT_EARLY: "bg-early-50",
 };
 
+/**
+ * Tint plus ink, not a saturated fill with white text. The old filled chips put
+ * white on #f59e0b — about 2:1 — making the label the least legible part of the
+ * most-read control in the application.
+ */
 const CHIP: Record<AttendanceStatus, string> = {
-  PRESENT: "bg-present-500 text-white",
-  ABSENT: "bg-absent-500 text-white",
-  LATE: "bg-late-500 text-white",
-  EXCUSED: "bg-excused-500 text-white",
-  LEFT_EARLY: "bg-early-500 text-white",
+  PRESENT: "bg-present-50 text-present-700 ring-present-500/30",
+  ABSENT: "bg-absent-50 text-absent-700 ring-absent-500/30",
+  LATE: "bg-late-50 text-late-700 ring-late-500/30",
+  EXCUSED: "bg-excused-50 text-excused-700 ring-excused-500/30",
+  LEFT_EARLY: "bg-early-50 text-early-700 ring-early-500/30",
 };
 
 type Marks = Record<
@@ -254,10 +252,11 @@ export function AttendanceRegister({ register }: { register: Register }) {
 
                   <span
                     className={cn(
-                      "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium",
+                      "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium ring-1 ring-inset",
                       CHIP[mark.status],
                     )}
                   >
+                    <StatusIcon status={mark.status} />
                     {t(`attendance.status.${mark.status}` as MessageKey)}
                     {mark.status === AttendanceStatus.LATE && mark.minutesLate
                       ? ` ${mark.minutesLate}′`
@@ -298,13 +297,7 @@ export function AttendanceRegister({ register }: { register: Register }) {
                                 : "border-ink-300 bg-white text-ink-700 hover:bg-ink-100",
                             )}
                           >
-                            <span
-                              className={cn(
-                                "h-2.5 w-2.5 shrink-0 rounded-full",
-                                active ? "bg-white/80" : SWATCH[status],
-                              )}
-                              aria-hidden="true"
-                            />
+                            <StatusIcon status={status} className="h-4 w-4" />
                             {t(`attendance.status.${status}` as MessageKey)}
                           </button>
                         );

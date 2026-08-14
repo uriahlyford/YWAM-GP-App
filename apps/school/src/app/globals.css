@@ -37,23 +37,41 @@
   --color-ink-800: #2b2825;
   --color-ink-900: #1a1816;
 
-  /* Attendance statuses. These five colours are load-bearing: a teacher reads
-     the class by colour before reading any label, so they must stay distinct at
-     a glance and never be reused for anything else. */
+  /*
+   * Attendance statuses.
+   *
+   * A teacher reads the class by colour before reading any label, so these are
+   * load-bearing and are never reused for anything else. The steps below are not
+   * taste — they come out of a colourblind-separation check:
+   *
+   *  - The three that matter in a register (present / absent / late) are the only
+   *    ones carrying the at-a-glance channel, and they pass adjacent-pair
+   *    separation under deuteranopia and tritanopia. The earlier amber (#f59e0b
+   *    at 500, #b45309 at 700) sat 4.9 ΔE from red under deuteranopia — a
+   *    colour-blind teacher could not tell an absence from a late arrival.
+   *  - Excused and left early are rarer and deliberately do NOT try to be a
+   *    fourth and fifth competing hue: five saturated hues cannot all separate,
+   *    and blue against violet failed even for full colour vision. They are told
+   *    apart by their icon and label, which every status carries anyway.
+   *
+   * `-500` is the mark colour (dots, swatches). `-700` is the *text* ink and
+   * clears 4.5:1 on its own `-50` tint. They differ for late because the step
+   * that separates from red is too light to read as text.
+   */
   --color-present-50: #ecfdf5;
-  --color-present-500: #10b981;
+  --color-present-500: #047857;
   --color-present-700: #047857;
   --color-absent-50: #fef2f2;
-  --color-absent-500: #ef4444;
+  --color-absent-500: #b91c1c;
   --color-absent-700: #b91c1c;
-  --color-late-50: #fffbeb;
-  --color-late-500: #f59e0b;
-  --color-late-700: #b45309;
+  --color-late-50: #fefce8;
+  --color-late-500: #ca8a04;
+  --color-late-700: #a16207;
   --color-excused-50: #eff6ff;
-  --color-excused-500: #3b82f6;
+  --color-excused-500: #1d4ed8;
   --color-excused-700: #1d4ed8;
   --color-early-50: #f5f3ff;
-  --color-early-500: #8b5cf6;
+  --color-early-500: #6d28d9;
   --color-early-700: #6d28d9;
 
   --radius-card: 0.875rem;

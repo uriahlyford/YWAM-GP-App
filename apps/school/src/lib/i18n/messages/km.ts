@@ -312,6 +312,10 @@ export const km: Messages = {
   "dash.noneTakenYet": "មិនទាន់មានថ្នាក់ណាកត់ត្រាវត្តមានថ្ងៃនេះ",
   "dash.absentList": "អវត្តមានថ្ងៃនេះ",
   "dash.nobodyAbsent": "គ្មានសិស្សណាអវត្តមានថ្ងៃនេះ",
+  "dash.trend": "វត្តមានតាមកាលកំណត់",
+  "dash.trend.label": "អត្រាវត្តមានប្រចាំថ្ងៃសិក្សា",
+  "dash.trend.table": "បង្ហាញលេខ",
+  "dash.trend.empty": "មិនទាន់មានថ្ងៃគ្រប់គ្រាន់ដែលបានកត់ត្រា",
   "dash.recentActivity": "សកម្មភាពថ្មីៗ",
 
   // --- Attendance ---

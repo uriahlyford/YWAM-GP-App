@@ -19,6 +19,8 @@ import { PageBody, PageHeader } from "@/components/ui/page";
 import { Card, CardHeader, EmptyState } from "@/components/ui/surface";
 import { buttonStyles } from "@/components/ui/button";
 import { StatusPill } from "@/components/ui/status-pill";
+import { AttendanceTrend } from "@/features/dashboard/trend";
+import { attendanceTrend } from "@/features/dashboard/queries";
 
 /**
  * The landing page, answering the two questions someone opening this app in the
@@ -27,19 +29,29 @@ import { StatusPill } from "@/components/ui/status-pill";
  * It is scoped like everything else — a teacher's figures cover their own
  * classes, an administrator's the whole campus.
  */
+/**
+ * A headline figure. `tone` applies only when there is a figure to colour: an
+ * em-dash rendered in the absent red is a small red bar that reads as a chart
+ * mark rather than as "nothing recorded yet".
+ */
 function Tile({
   label,
   value,
   tone,
 }: {
   label: string;
-  value: string;
+  value: string | null;
   tone?: string;
 }) {
+  const empty = value === null;
   return (
     <div className="rounded-card border border-ink-200 bg-white px-4 py-3">
-      <p className={`text-2xl font-semibold tabular-nums ${tone ?? "text-ink-900"}`}>
-        {value}
+      <p
+        className={`text-2xl font-semibold tabular-nums ${
+          empty ? "text-ink-300" : (tone ?? "text-ink-900")
+        }`}
+      >
+        {empty ? "—" : value}
       </p>
       <p className="mt-0.5 text-sm text-ink-500">{label}</p>
     </div>
@@ -74,7 +86,7 @@ export default async function DashboardPage({ params }: PageProps<"/[locale]">) 
   });
   const classIds = classes.map((klass) => klass.id);
 
-  const [studentCount, teacherCount, sessions, absentToday] = await Promise.all([
+  const [studentCount, teacherCount, sessions, absentToday, trend] = await Promise.all([
     prisma.enrollment.count({
       where: { classId: { in: classIds }, status: "ENROLLED" },
     }),
@@ -108,6 +120,7 @@ export default async function DashboardPage({ params }: PageProps<"/[locale]">) 
         session: { select: { class: { select: { name: true, nameKm: true } } } },
       },
     }),
+    attendanceTrend(classIds, day),
   ]);
 
   const counts = { present: 0, absent: 0, late: 0, excused: 0 };
@@ -143,19 +156,19 @@ export default async function DashboardPage({ params }: PageProps<"/[locale]">) 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Tile
           label={t("dash.attendanceRate")}
-          value={rate === null ? "—" : formatPercent(locale, rate)}
+          value={rate === null ? null : formatPercent(locale, rate)}
           tone={
             rate !== null && rate < 0.85 ? "text-absent-700" : "text-present-700"
           }
         />
         <Tile
           label={t("dash.absentToday")}
-          value={marked === 0 ? "—" : formatNumber(locale, counts.absent)}
+          value={marked === 0 ? null : formatNumber(locale, counts.absent)}
           tone="text-absent-700"
         />
         <Tile
           label={t("dash.lateToday")}
-          value={marked === 0 ? "—" : formatNumber(locale, counts.late)}
+          value={marked === 0 ? null : formatNumber(locale, counts.late)}
           tone="text-late-700"
         />
         <Tile
@@ -163,6 +176,15 @@ export default async function DashboardPage({ params }: PageProps<"/[locale]">) 
           value={formatNumber(locale, studentCount)}
         />
       </div>
+
+      {trend.length >= 2 ? (
+        <Card className="mt-4">
+          <CardHeader title={t("dash.trend")} />
+          <div className="p-4 sm:p-5">
+            <AttendanceTrend points={trend} />
+          </div>
+        </Card>
+      ) : null}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card className="overflow-hidden">

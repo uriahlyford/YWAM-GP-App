@@ -311,6 +311,10 @@ export const en = {
   "dash.noneTakenYet": "No registers taken yet today",
   "dash.absentList": "Absent today",
   "dash.nobodyAbsent": "Nobody is marked absent today",
+  "dash.trend": "Attendance over time",
+  "dash.trend.label": "Attendance rate per school day",
+  "dash.trend.table": "Show the numbers",
+  "dash.trend.empty": "Not enough days recorded yet",
   "dash.recentActivity": "Recent activity",
 
   // --- Attendance ---
