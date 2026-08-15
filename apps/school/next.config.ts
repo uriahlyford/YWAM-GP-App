@@ -10,7 +10,13 @@ const nextConfig: NextConfig = {
   },
   typedRoutes: true,
   poweredByHeader: false,
-  serverExternalPackages: ["@node-rs/argon2"],
+  serverExternalPackages: ["@node-rs/argon2", "pdfkit", "fontkit", "exceljs"],
+  // The PDF route reads the Khmer fonts from disk at runtime. Nothing imports
+  // them as modules, so the bundler cannot see the dependency and would leave
+  // them out of the deployed function.
+  outputFileTracingIncludes: {
+    "/api/reports/[kind]": ["./src/assets/fonts/**"],
+  },
   async headers() {
     return [
       {
