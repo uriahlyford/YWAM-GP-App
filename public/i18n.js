@@ -38,6 +38,21 @@
 
     "dash.waiting": { en: "Not yet reported", km: "មិនទាន់រាយការណ៍" },
     "dash.by": { en: "by", km: "ដោយ" },
+    "dash.gatheredLine": {
+      en: "gathered from the 2026 national committee roster",
+      km: "ប្រមូលបានពីបញ្ជីរាយនាមគណៈកម្មការជាតិ ឆ្នាំ២០២៦",
+    },
+
+    // Estimated vs. gathered comparison
+    "compare.title": { en: "Estimated vs. gathered", km: "ការប៉ាន់ស្មាន ធៀបនឹង ទិន្នន័យប្រមូលបាន" },
+    "compare.intro": {
+      en: "Two counts from two sources, kept side by side rather than blended: the leader's own estimate from Submit, and the 2026 national committee roster's membership figures.",
+      km: "លេខពីរពីប្រភពពីរ ដាក់ប្រៀបធៀបគ្នាដោយឡែក មិនច្របល់គ្នាទេ៖ ការប៉ាន់ស្មានផ្ទាល់ខ្លួនរបស់អ្នកដឹកនាំពីទំព័រដាក់ស្នើ និងតួលេខសមាជិកភាពពីបញ្ជីរាយនាមគណៈកម្មការជាតិ ឆ្នាំ២០២៦។",
+    },
+    "compare.estimated": { en: "Estimated", km: "ប៉ាន់ស្មាន" },
+    "compare.gathered": { en: "Gathered", km: "ប្រមូលបាន" },
+    "compare.diff": { en: "gathered − estimated", km: "ប្រមូលបាន − ប៉ាន់ស្មាន" },
+    "compare.source": { en: "Source:", km: "ប្រភព៖" },
 
     // Submit
     "submit.province": { en: "Province", km: "ខេត្ត" },
