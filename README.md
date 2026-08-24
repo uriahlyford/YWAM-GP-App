@@ -80,6 +80,32 @@ The registry never renders what isn't being looked at. Districts and communes st
 collapsed until opened, and search replaces the tree rather than adding to it, so
 Kampong Speu's 1,363 villages cost nothing until someone drills into them.
 
+## Reaching it on a Cambodian phone
+
+The site will need a custom domain before it goes out to provincial leaders.
+Cellcard filters `*.netlify.app` at the DNS level: on Cellcard mobile data Safari
+reports "the server stopped responding", while the same phone loads the site fine
+over WiFi, over a VPN, and over Cloudflare's 1.1.1.1 encrypted DNS. Netlify itself
+is healthy — the block is on the shared free-hosting hostname, not on this project.
+
+Because 1.1.1.1 resolves it, the filtering keys on the name rather than on Netlify's
+IP ranges, so pointing a domain of our own at the same Netlify project is enough.
+Every request the frontend makes is same-origin and relative (`/api/entries`,
+`/api/villages`, `/data/villages/*.json`), so moving to a custom domain needs no
+code change at all — add the domain in Netlify, set DNS, done.
+
+Two things worth doing before a wide rollout:
+
+- Test on a phone on each carrier leaders actually use — Cellcard, Smart, Metfone.
+  One carrier filtering the hostname says nothing about the others.
+- Keep the app's only external dependency optional. Google Fonts is loaded
+  non-blocking with a system-font fallback, so a blocked or slow font host costs
+  nothing but a change of typeface.
+
+Network calls time out after 20 seconds (`REQUEST_TIMEOUT_MS` in `public/app.js`)
+rather than hanging, so a dropped provincial connection surfaces as an error a
+leader can retry instead of a spinner that never resolves.
+
 ## Local development
 
 ```

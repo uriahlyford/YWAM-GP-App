@@ -30,7 +30,7 @@ body {
 }
 
 body.km {
-  font-family: "Noto Sans Khmer", "Khmer OS", system-ui, sans-serif;
+  font-family: "Noto Sans Khmer", "Khmer Sangkam MN", "Khmer MN", "Hanuman", "Khmer OS Battambang", "Khmer OS", system-ui, sans-serif;
   line-height: 1.9;
 }
 
@@ -373,7 +373,7 @@ select {
   background: var(--cream);
   color: var(--ink);
 }
-body.km input, body.km select { font-family: "Noto Sans Khmer", "Khmer OS", system-ui, sans-serif; }
+body.km input, body.km select { font-family: "Noto Sans Khmer", "Khmer Sangkam MN", "Khmer MN", "Hanuman", "Khmer OS Battambang", "Khmer OS", system-ui, sans-serif; }
 
 input:focus, select:focus {
   outline: 2px solid var(--brand);

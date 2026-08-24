@@ -122,6 +122,35 @@
 
   // ---------- data ----------
 
+  // Every network call goes through here so none of them can hang forever.
+  // Provincial mobile data drops out mid-request often enough that a bare fetch()
+  // leaves a leader staring at a spinner or a stuck "Sending…" with no way back.
+  // 20s is generous for a slow 3G round trip and still short enough to feel like
+  // an answer. On abort this rejects, so existing .catch() branches show the
+  // "check your connection" message they were already written for.
+  var REQUEST_TIMEOUT_MS = 20000;
+
+  function req(url, opts) {
+    if (typeof AbortController !== "function") return fetch(url, opts);
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () {
+      ctrl.abort();
+    }, REQUEST_TIMEOUT_MS);
+    var o = {};
+    for (var k in opts || {}) if (opts.hasOwnProperty(k)) o[k] = opts[k];
+    o.signal = ctrl.signal;
+    return fetch(url, o).then(
+      function (r) {
+        clearTimeout(timer);
+        return r;
+      },
+      function (e) {
+        clearTimeout(timer);
+        throw e;
+      }
+    );
+  }
+
   // silent = refresh in place, without flashing the loading state over data
   // that's already on screen.
   function load(silent) {
@@ -130,7 +159,7 @@
       render();
     }
     Promise.all([
-      fetch("/api/entries")
+      req("/api/entries")
         .then(function (r) {
           return r.json();
         })
@@ -139,7 +168,7 @@
         }),
       // Registry totals ride along, so the dashboard can show confirmed
       // alongside estimated without a second round trip.
-      fetch("/api/villages?summary=1")
+      req("/api/villages?summary=1")
         .then(function (r) {
           return r.json();
         })
@@ -387,14 +416,14 @@
     render();
 
     Promise.all([
-      fetch("/data/villages/" + encodeURIComponent(id) + ".json")
+      req("/data/villages/" + encodeURIComponent(id) + ".json")
         .then(function (r) {
           return r.json();
         })
         .catch(function () {
           return null;
         }),
-      fetch("/api/villages?province=" + encodeURIComponent(id))
+      req("/api/villages?province=" + encodeURIComponent(id))
         .then(function (r) {
           return r.json();
         })
@@ -533,7 +562,7 @@
     state.regError = "";
     refreshRegList();
 
-    fetch("/api/villages", {
+    req("/api/villages", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -797,7 +826,7 @@
     state.formError = "";
     render();
 
-    fetch("/api/entries", {
+    req("/api/entries", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
