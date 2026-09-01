@@ -3,6 +3,9 @@
   "private": true,
   "version": "2.0.0",
   "description": "One church leader per Cambodian province submits their best estimate of how many Christians are in their province, and how sure they are of it.",
+  "scripts": {
+    "test": "bash test/run.sh"
+  },
   "dependencies": {
     "@netlify/blobs": "^10.7.12"
   }

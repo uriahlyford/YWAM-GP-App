@@ -11,6 +11,7 @@
   var PROVINCES = window.PROVINCES || [];
   var GOAL = window.GOAL || { targetPercent: 10, targetDate: "2033-01-01" };
   var PASSCODE_KEY = "vision2033.passcode";
+  var TOKEN_KEY = "vision2033.token";
 
   var state = {
     view: "dashboard",
@@ -35,6 +36,31 @@
     regFilter: "",
     regOpen: {}, // district/commune code -> expanded
     regBusy: {}, // villageCode -> mid-save
+
+    // My Church — the signed-in account and everything that screen shows
+    ch: {
+      token: "",
+      me: null,
+      leader: null,
+      director: null,
+      leaderMissing: false,
+      roster: null,
+      rosterScope: "",
+      tally: null,
+      loading: false,
+      busy: false,
+      error: "",
+      notice: "",
+      mode: "signin",
+      auth: { phone: "", pin: "", pin2: "", name: "", code: "", provinceId: "" },
+      form: { provinceId: "", churchName: "", denomination: "", men: "", women: "", children: "" },
+      villages: [],
+      tree: null,
+      treeFor: "",
+      vilFilter: "",
+      pinOpen: false,
+      pin: { current: "", next: "" },
+    },
   };
 
   var app = document.getElementById("app");
@@ -564,7 +590,7 @@
 
     req("/api/villages", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: authHeaders({ "content-type": "application/json" }),
       body: JSON.stringify({
         passcode: pass,
         provinceId: state.regProvince,
@@ -721,6 +747,11 @@
       savedPass = localStorage.getItem(PASSCODE_KEY) || "";
     } catch (e) {}
 
+    // A signed-in provincial leader is already authenticated. Asking them for the
+    // shared passcode as well would be asking for a second credential to prove
+    // something the session has already proved.
+    var bySession = signedIn() && isLeader();
+
     var card =
       '<div class="card">' +
       (state.formError ? '<div class="error">' + esc(state.formError) + "</div>" : "") +
@@ -749,16 +780,19 @@
       (state.confidence ? esc(confBand(state.confidence)) : "") +
       "</div>" +
       "</div>" +
-      '<div class="field">' +
-      '<label class="label" for="f-name">' + esc(t("submit.name")) + "</label>" +
-      '<input id="f-name" type="text" value="' + esc(f.name) +
-      '" placeholder="' + esc(t("submit.name.placeholder")) + '" />' +
-      "</div>" +
-      '<div class="field">' +
-      '<label class="label" for="f-pass">' + esc(t("submit.passcode")) + "</label>" +
-      '<input id="f-pass" type="password" value="' + esc(f.passcode || savedPass) +
-      '" placeholder="' + esc(t("submit.passcode.placeholder")) + '" />' +
-      "</div>" +
+      (bySession
+        ? '<div class="field-note signed-as">' + esc(t("submit.as")) + " <strong>" +
+          esc(state.ch.me.name) + "</strong></div>"
+        : '<div class="field">' +
+          '<label class="label" for="f-name">' + esc(t("submit.name")) + "</label>" +
+          '<input id="f-name" type="text" value="' + esc(f.name) +
+          '" placeholder="' + esc(t("submit.name.placeholder")) + '" />' +
+          "</div>" +
+          '<div class="field">' +
+          '<label class="label" for="f-pass">' + esc(t("submit.passcode")) + "</label>" +
+          '<input id="f-pass" type="password" value="' + esc(f.passcode || savedPass) +
+          '" placeholder="' + esc(t("submit.passcode.placeholder")) + '" />' +
+          "</div>") +
       '<button class="btn" id="f-submit"' + (state.sending ? " disabled" : "") + ">" +
       esc(state.sending ? t("submit.sending") : t("submit.button")) +
       "</button>" +
@@ -798,6 +832,19 @@
     "f-pass": "passcode",
   };
 
+  var CH_FIELD = {
+    "ch-church": "churchName",
+    "ch-denom": "denomination",
+  };
+  var CH_NUM_FIELD = { "ch-men": "men", "ch-women": "women", "ch-children": "children" };
+  var AUTH_FIELD = {
+    "a-phone": "phone",
+    "a-pin": "pin",
+    "a-pin2": "pin2",
+    "a-name": "name",
+    "a-code": "code",
+  };
+
   function syncField(e) {
     var key = FIELD_OF[e.target.id];
     if (key) state.form[key] = e.target.value;
@@ -807,8 +854,13 @@
     var provinceId = document.getElementById("f-province").value;
     var christiansRaw = document.getElementById("f-christians").value;
     var villagesRaw = document.getElementById("f-villages").value;
-    var enteredBy = document.getElementById("f-name").value.trim();
-    var passcode = document.getElementById("f-pass").value;
+    var nameBox = document.getElementById("f-name");
+    var passBox = document.getElementById("f-pass");
+    // Both are absent when a signed-in leader is reporting — the session carries
+    // the identity and the authorisation instead.
+    var bySession = !passBox;
+    var enteredBy = nameBox ? nameBox.value.trim() : state.ch.me ? state.ch.me.name : "";
+    var passcode = passBox ? passBox.value : "";
 
     if (!provinceId) return fail(t("err.province"));
     if (christiansRaw === "" || !isFinite(Number(christiansRaw)) || Number(christiansRaw) < 0)
@@ -820,7 +872,7 @@
     if (p && p.referenceVillages && Number(villagesRaw) > p.referenceVillages)
       return fail(t("err.villagesMax"));
     if (!state.confidence) return fail(t("err.confidence"));
-    if (!passcode) return fail(t("err.passcode"));
+    if (!bySession && !passcode) return fail(t("err.passcode"));
 
     state.sending = true;
     state.formError = "";
@@ -828,7 +880,7 @@
 
     req("/api/entries", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: authHeaders({ "content-type": "application/json" }),
       body: JSON.stringify({
         passcode: passcode,
         provinceId: provinceId,
@@ -851,9 +903,11 @@
           render();
           return;
         }
-        try {
-          localStorage.setItem(PASSCODE_KEY, passcode);
-        } catch (e) {}
+        if (passcode) {
+          try {
+            localStorage.setItem(PASSCODE_KEY, passcode);
+          } catch (e) {}
+        }
         state.sent = true;
         state.confidence = 0;
         // Cleared for the next report; the passcode comes back from localStorage.
@@ -873,6 +927,695 @@
     render();
   }
 
+  // ---------- My Church: accounts, profile, contacts, roster ----------
+
+  // Suggestions only — the field is free text, because a list of Cambodian
+  // denominations that a pastor can't find their own church in is worse than none.
+  var DENOMINATIONS = [
+    "Cambodian Evangelical Church",
+    "Evangelical Fellowship of Cambodia",
+    "Methodist",
+    "Baptist",
+    "Assemblies of God",
+    "Presbyterian",
+    "Christian and Missionary Alliance",
+    "Foursquare",
+    "Church of Christ",
+    "Independent / non-denominational",
+  ];
+
+  function authHeaders(extra) {
+    var h = extra || {};
+    if (state.ch.token) h.authorization = "Bearer " + state.ch.token;
+    return h;
+  }
+
+  function saveToken(token) {
+    state.ch.token = token || "";
+    try {
+      if (token) localStorage.setItem(TOKEN_KEY, token);
+      else localStorage.removeItem(TOKEN_KEY);
+    } catch (e) {}
+  }
+
+  function signedIn() {
+    return Boolean(state.ch.token && state.ch.me);
+  }
+
+  function isLeader() {
+    var r = state.ch.me && state.ch.me.role;
+    return r === "leader" || r === "director";
+  }
+
+  // Fills the profile form from the saved record, so editing starts from what's
+  // stored rather than from blank fields that would save away real numbers.
+  function seedChurchForm(me) {
+    state.ch.form = {
+      provinceId: me.provinceId || "",
+      churchName: me.churchName || "",
+      denomination: me.denomination || "",
+      men: me.congregation && me.congregation.men ? String(me.congregation.men) : "",
+      women: me.congregation && me.congregation.women ? String(me.congregation.women) : "",
+      children: me.congregation && me.congregation.children ? String(me.congregation.children) : "",
+    };
+    state.ch.villages = (me.villages || []).slice();
+    // Whatever brought us here — signing up, signing in, or restoring a session on
+    // load — the picker needs the province's villages before it can search them.
+    if (me.provinceId) loadChurchTree(me.provinceId);
+  }
+
+  function loadMe(silent) {
+    if (!state.ch.token) return;
+    if (!silent) state.ch.loading = true;
+    req("/api/me", { headers: authHeaders() })
+      .then(function (r) {
+        if (r.status === 401) {
+          // The session expired or was signed with a secret that no longer matches.
+          saveToken("");
+          state.ch.me = null;
+          throw new Error("expired");
+        }
+        return r.json();
+      })
+      .then(function (d) {
+        state.ch.loading = false;
+        state.ch.me = d.me;
+        state.ch.leader = d.leader || null;
+        state.ch.director = d.director || null;
+        state.ch.leaderMissing = Boolean(d.leaderMissing);
+        state.ch.roster = d.roster || null;
+        state.ch.rosterScope = d.rosterScope || "";
+        state.ch.tally = d.tally || null;
+        seedChurchForm(d.me);
+        if (state.view === "church") render();
+      })
+      .catch(function () {
+        state.ch.loading = false;
+        if (state.view === "church") render();
+      });
+  }
+
+  function authSubmit() {
+    var c = state.ch;
+    var a = c.auth;
+    c.error = "";
+
+    if (!a.phone.trim()) return chFail(t("err.phone"));
+    if (!/^\d{4,8}$/.test(a.pin)) return chFail(t("err.pin"));
+
+    var body = { phone: a.phone, pin: a.pin };
+    if (c.mode === "signup") {
+      if (!a.name.trim()) return chFail(t("err.name"));
+      if (a.pin !== a.pin2) return chFail(t("err.pinMatch"));
+      if (!a.code.trim()) return chFail(t("err.passcode"));
+      body.action = "signup";
+      body.name = a.name;
+      body.joinCode = a.code;
+      body.provinceId = a.provinceId;
+    } else {
+      body.action = "signin";
+    }
+
+    c.busy = true;
+    render();
+
+    req("/api/auth", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    })
+      .then(function (r) {
+        return r.json().then(function (j) {
+          return { ok: r.ok, j: j };
+        });
+      })
+      .then(function (res) {
+        c.busy = false;
+        if (!res.ok) {
+          c.error = res.j && res.j.error ? res.j.error : t("err.generic");
+          render();
+          return;
+        }
+        saveToken(res.j.token);
+        c.me = res.j.me;
+        c.auth = { phone: "", pin: "", pin2: "", name: "", code: "", provinceId: "" };
+        seedChurchForm(res.j.me);
+        render();
+        loadMe(true);
+      })
+      .catch(function () {
+        c.busy = false;
+        c.error = t("err.generic");
+        render();
+      });
+  }
+
+  function chFail(msg) {
+    state.ch.error = msg;
+    render();
+  }
+
+  function signOut() {
+    saveToken("");
+    state.ch.me = null;
+    state.ch.leader = null;
+    state.ch.director = null;
+    state.ch.roster = null;
+    state.ch.tally = null;
+    state.ch.notice = "";
+    state.ch.error = "";
+    render();
+  }
+
+  function saveProfile() {
+    var f = state.ch.form;
+    var num = function (v) {
+      var n = Number(v === "" ? 0 : v);
+      return isFinite(n) && n >= 0 ? Math.round(n) : 0;
+    };
+
+    state.ch.busy = true;
+    state.ch.error = "";
+    state.ch.notice = "";
+    render();
+
+    req("/api/me", {
+      method: "PUT",
+      headers: authHeaders({ "content-type": "application/json" }),
+      body: JSON.stringify({
+        provinceId: f.provinceId,
+        churchName: f.churchName,
+        denomination: f.denomination,
+        congregation: { men: num(f.men), women: num(f.women), children: num(f.children) },
+        villages: state.ch.villages,
+      }),
+    })
+      .then(function (r) {
+        return r.json().then(function (j) {
+          return { ok: r.ok, j: j };
+        });
+      })
+      .then(function (res) {
+        state.ch.busy = false;
+        if (!res.ok) {
+          state.ch.error = res.j && res.j.error ? res.j.error : t("err.generic");
+          render();
+          return;
+        }
+        state.ch.notice = t("church.saved");
+        state.ch.me = res.j.me;
+        render();
+        // The notice belongs at the top of the card, but the Save button is at the
+        // bottom — so without this a pastor taps Save and sees nothing happen.
+        var n = document.querySelector(".notice");
+        if (n && n.scrollIntoView) n.scrollIntoView({ block: "center" });
+        // The province may have changed, which changes who their leader is.
+        loadMe(true);
+      })
+      .catch(function () {
+        state.ch.busy = false;
+        state.ch.error = t("err.generic");
+        render();
+      });
+  }
+
+  function changePin() {
+    var p = state.ch.pin;
+    if (!/^\d{4,8}$/.test(p.next)) return chFail(t("err.pin"));
+    state.ch.busy = true;
+    state.ch.error = "";
+    render();
+    req("/api/me", {
+      method: "PUT",
+      headers: authHeaders({ "content-type": "application/json" }),
+      body: JSON.stringify({ currentPin: p.current, newPin: p.next }),
+    })
+      .then(function (r) {
+        return r.json().then(function (j) {
+          return { ok: r.ok, j: j };
+        });
+      })
+      .then(function (res) {
+        state.ch.busy = false;
+        if (!res.ok) {
+          state.ch.error = res.j && res.j.error ? res.j.error : t("err.generic");
+        } else {
+          state.ch.notice = t("church.pin.changed");
+          state.ch.pinOpen = false;
+          state.ch.pin = { current: "", next: "" };
+        }
+        render();
+      })
+      .catch(function () {
+        state.ch.busy = false;
+        state.ch.error = t("err.generic");
+        render();
+      });
+  }
+
+  function setRole(phone, role) {
+    state.ch.busy = true;
+    render();
+    req("/api/me", {
+      method: "POST",
+      headers: authHeaders({ "content-type": "application/json" }),
+      body: JSON.stringify({ action: "setRole", phone: phone, role: role }),
+    })
+      .then(function (r) {
+        return r.json().then(function (j) {
+          return { ok: r.ok, j: j };
+        });
+      })
+      .then(function (res) {
+        state.ch.busy = false;
+        if (!res.ok) state.ch.error = res.j && res.j.error ? res.j.error : t("err.generic");
+        render();
+        loadMe(true);
+      })
+      .catch(function () {
+        state.ch.busy = false;
+        state.ch.error = t("err.generic");
+        render();
+      });
+  }
+
+  // ---------- village picker ----------
+
+  function loadChurchTree(provinceId) {
+    if (!provinceId || state.ch.treeFor === provinceId) return;
+    state.ch.treeFor = provinceId;
+    state.ch.tree = null;
+    req("/data/villages/" + encodeURIComponent(provinceId) + ".json")
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (d) {
+        state.ch.tree = d;
+        refreshChVil();
+      })
+      .catch(function () {});
+  }
+
+  function hasVillage(code) {
+    for (var i = 0; i < state.ch.villages.length; i++) {
+      if (state.ch.villages[i].code === code) return true;
+    }
+    return false;
+  }
+
+  var CH_VIL_CAP = 40;
+
+  function chVilResultsHtml() {
+    var q = state.ch.vilFilter.trim().toLowerCase();
+    if (!q) return "";
+    if (!state.ch.tree) return '<div class="pick-empty">…</div>';
+
+    var hits = [];
+    state.ch.tree.districts.forEach(function (d) {
+      d.communes.forEach(function (c) {
+        c.villages.forEach(function (v) {
+          if (hits.length >= CH_VIL_CAP) return;
+          if (hasVillage(v.code)) return;
+          var hay = ((v.latin || "") + " " + (v.khmer || "")).toLowerCase();
+          if (hay.indexOf(q) === -1) return;
+          hits.push({ v: v, commune: c });
+        });
+      });
+    });
+
+    if (!hits.length) return '<div class="pick-empty">' + esc(t("reg.noResults")) + "</div>";
+
+    return hits
+      .map(function (h) {
+        return (
+          '<button type="button" class="pick-row" data-vil-add="' + esc(h.v.code) +
+          '" data-vil-name="' + esc(h.v.latin || "") +
+          '" data-vil-km="' + esc(h.v.khmer || "") +
+          '" data-vil-commune="' + esc(locName(h.commune)) + '">' +
+          "<span>" + esc(locName(h.v)) + "</span>" +
+          '<span class="pick-where">' + esc(locName(h.commune)) + "</span>" +
+          "</button>"
+        );
+      })
+      .join("");
+  }
+
+  function chChipsHtml() {
+    if (!state.ch.villages.length) {
+      return '<div class="field-note">' + esc(t("church.villages.none")) + "</div>";
+    }
+    return (
+      '<div class="chips">' +
+      state.ch.villages
+        .map(function (v) {
+          var label = window.I18N.getLang() === "km" ? v.nameKhmer || v.name : v.name || v.nameKhmer;
+          return (
+            '<span class="chip">' + esc(label) +
+            '<button type="button" class="chip-x" data-vil-del="' + esc(v.code) +
+            '" aria-label="' + esc(t("church.villages.remove")) + '">×</button></span>'
+          );
+        })
+        .join("") +
+      "</div>"
+    );
+  }
+
+  // Updated in place, like the registry list: re-rendering the whole screen on
+  // each keystroke would take the keyboard focus away mid-word.
+  function refreshChVil() {
+    var chips = document.getElementById("ch-chips");
+    var results = document.getElementById("ch-vil-results");
+    if (chips) chips.innerHTML = chChipsHtml();
+    if (results) results.innerHTML = chVilResultsHtml();
+  }
+
+  function chCongregationTotal() {
+    var f = state.ch.form;
+    return (Number(f.men) || 0) + (Number(f.women) || 0) + (Number(f.children) || 0);
+  }
+
+  function refreshChTotal() {
+    var box = document.getElementById("ch-cong-total");
+    if (box) box.textContent = fmt(chCongregationTotal());
+  }
+
+  // ---------- My Church views ----------
+
+  function renderAuth() {
+    var c = state.ch;
+    var signup = c.mode === "signup";
+
+    var options = '<option value="">' + esc(t("submit.choose")) + "</option>";
+    PROVINCES.forEach(function (p) {
+      options +=
+        '<option value="' + esc(p.id) + '"' + (p.id === c.auth.provinceId ? " selected" : "") + ">" +
+        esc(provinceName(p)) + "</option>";
+    });
+
+    var html =
+      '<div class="card">' +
+      "<h2>" + esc(signup ? t("auth.signup.title") : t("auth.signin.title")) + "</h2>" +
+      '<p class="card-intro">' + esc(t("auth.intro")) + "</p>" +
+      (c.error ? '<div class="error">' + esc(c.error) + "</div>" : "") +
+      (signup
+        ? '<div class="field">' +
+          '<label class="label" for="a-name">' + esc(t("submit.name")) + "</label>" +
+          '<input id="a-name" type="text" autocomplete="name" value="' + esc(c.auth.name) +
+          '" placeholder="' + esc(t("submit.name.placeholder")) + '" />' +
+          "</div>"
+        : "") +
+      '<div class="field">' +
+      '<label class="label" for="a-phone">' + esc(t("auth.phone")) + "</label>" +
+      '<input id="a-phone" type="tel" inputmode="tel" autocomplete="tel" value="' + esc(c.auth.phone) +
+      '" placeholder="' + esc(t("auth.phone.placeholder")) + '" />' +
+      "</div>" +
+      (signup
+        ? '<div class="field">' +
+          '<label class="label" for="a-province">' + esc(t("submit.province")) + "</label>" +
+          '<select id="a-province">' + options + "</select>" +
+          "</div>"
+        : "") +
+      '<div class="field">' +
+      '<label class="label" for="a-pin">' + esc(t("auth.pin")) +
+      (signup ? ' <span class="label-hint">— ' + esc(t("auth.pin.hint")) + "</span>" : "") +
+      "</label>" +
+      '<input id="a-pin" type="password" inputmode="numeric" autocomplete="' +
+      (signup ? "new-password" : "current-password") + '" value="' + esc(c.auth.pin) + '" />' +
+      "</div>" +
+      (signup
+        ? '<div class="field">' +
+          '<label class="label" for="a-pin2">' + esc(t("auth.pin.confirm")) + "</label>" +
+          '<input id="a-pin2" type="password" inputmode="numeric" autocomplete="new-password" value="' +
+          esc(c.auth.pin2) + '" />' +
+          "</div>" +
+          '<div class="field">' +
+          '<label class="label" for="a-code">' + esc(t("auth.code")) +
+          ' <span class="label-hint">— ' + esc(t("auth.code.hint")) + "</span></label>" +
+          '<input id="a-code" type="password" value="' + esc(c.auth.code) + '" />' +
+          "</div>"
+        : "") +
+      '<button class="btn" id="a-go"' + (c.busy ? " disabled" : "") + ">" +
+      esc(c.busy ? t("auth.working") : signup ? t("auth.signup.button") : t("auth.signin.button")) +
+      "</button>" +
+      '<button class="btn-link" id="a-mode">' +
+      esc(signup ? t("auth.toSignin") : t("auth.toSignup")) +
+      "</button>" +
+      "</div>";
+
+    app.appendChild(el(html));
+  }
+
+  function contactCard(label, person, extraNote) {
+    if (!person) {
+      return (
+        '<div class="contact">' +
+        '<div class="contact-label">' + esc(label) + "</div>" +
+        '<div class="contact-none">' + esc(extraNote || "") + "</div>" +
+        "</div>"
+      );
+    }
+    return (
+      '<div class="contact">' +
+      '<div class="contact-label">' + esc(label) + "</div>" +
+      '<div class="contact-name">' + esc(person.name) + "</div>" +
+      (person.churchName ? '<div class="contact-sub">' + esc(person.churchName) + "</div>" : "") +
+      '<a class="contact-call" href="tel:+' + esc(person.phone) + '">' +
+      '<span class="contact-num">' + esc(person.phoneDisplay) + "</span>" +
+      '<span class="contact-verb">' + esc(t("church.call")) + "</span>" +
+      "</a>" +
+      "</div>"
+    );
+  }
+
+  function renderProfileCard() {
+    var f = state.ch.form;
+    var me = state.ch.me;
+
+    var options = '<option value="">' + esc(t("submit.choose")) + "</option>";
+    PROVINCES.forEach(function (p) {
+      options +=
+        '<option value="' + esc(p.id) + '"' + (p.id === f.provinceId ? " selected" : "") + ">" +
+        esc(provinceName(p)) + "</option>";
+    });
+
+    var dl = DENOMINATIONS.map(function (d) {
+      return '<option value="' + esc(d) + '"></option>';
+    }).join("");
+
+    var html =
+      '<div class="card">' +
+      '<div class="me-head">' +
+      "<div>" +
+      '<div class="me-name">' + esc(me.name) + "</div>" +
+      '<div class="me-sub">' + esc(me.phoneDisplay) + "</div>" +
+      "</div>" +
+      '<span class="role-badge role-' + esc(me.role) + '">' + esc(t("role." + me.role)) + "</span>" +
+      "</div>" +
+      (state.ch.notice ? '<div class="notice">' + esc(state.ch.notice) + "</div>" : "") +
+      (state.ch.error ? '<div class="error">' + esc(state.ch.error) + "</div>" : "") +
+      "<h3>" + esc(t("church.profile")) + "</h3>" +
+      '<div class="field">' +
+      '<label class="label" for="ch-province">' + esc(t("submit.province")) + "</label>" +
+      '<select id="ch-province">' + options + "</select>" +
+      "</div>" +
+      '<div class="field">' +
+      '<label class="label" for="ch-church">' + esc(t("church.churchName")) + "</label>" +
+      '<input id="ch-church" type="text" value="' + esc(f.churchName) +
+      '" placeholder="' + esc(t("church.churchName.placeholder")) + '" />' +
+      "</div>" +
+      '<div class="field">' +
+      '<label class="label" for="ch-denom">' + esc(t("church.denomination")) + "</label>" +
+      '<input id="ch-denom" type="text" list="denoms" value="' + esc(f.denomination) +
+      '" placeholder="' + esc(t("church.denomination.placeholder")) + '" />' +
+      '<datalist id="denoms">' + dl + "</datalist>" +
+      "</div>" +
+      '<div class="field">' +
+      '<label class="label">' + esc(t("church.congregation")) + "</label>" +
+      '<div class="field-note">' + esc(t("church.congregation.hint")) + "</div>" +
+      '<div class="cong-grid">' +
+      '<label class="cong"><span>' + esc(t("church.men")) + "</span>" +
+      '<input id="ch-men" type="number" inputmode="numeric" min="0" step="1" placeholder="0" value="' +
+      esc(f.men) + '" /></label>' +
+      '<label class="cong"><span>' + esc(t("church.women")) + "</span>" +
+      '<input id="ch-women" type="number" inputmode="numeric" min="0" step="1" placeholder="0" value="' +
+      esc(f.women) + '" /></label>' +
+      '<label class="cong"><span>' + esc(t("church.children")) + "</span>" +
+      '<input id="ch-children" type="number" inputmode="numeric" min="0" step="1" placeholder="0" value="' +
+      esc(f.children) + '" /></label>' +
+      "</div>" +
+      '<div class="cong-total">' + esc(t("church.total")) +
+      ' <strong class="num" id="ch-cong-total">' + fmt(chCongregationTotal()) + "</strong></div>" +
+      "</div>" +
+      '<div class="field">' +
+      '<label class="label" for="ch-vil-search">' + esc(t("church.villages")) + "</label>" +
+      '<div id="ch-chips">' + chChipsHtml() + "</div>" +
+      (f.provinceId
+        ? '<input class="reg-search" id="ch-vil-search" type="text" placeholder="' +
+          esc(t("church.villages.search")) + '" value="' + esc(state.ch.vilFilter) + '" />' +
+          '<div class="pick-results" id="ch-vil-results">' + chVilResultsHtml() + "</div>"
+        : '<div class="field-note">' + esc(t("church.villages.pickProvince")) + "</div>") +
+      "</div>" +
+      '<button class="btn" id="ch-save"' + (state.ch.busy ? " disabled" : "") + ">" +
+      esc(state.ch.busy ? t("church.saving") : t("church.save")) +
+      "</button>" +
+      '<div class="card-foot">' +
+      '<button class="btn-link" id="ch-pin-toggle">' + esc(t("church.pin.change")) + "</button>" +
+      '<button class="btn-link" id="ch-signout">' + esc(t("auth.signout")) + "</button>" +
+      "</div>" +
+      (state.ch.pinOpen
+        ? '<div class="pin-box">' +
+          '<div class="field"><label class="label" for="ch-pin-cur">' +
+          esc(t("church.pin.current")) + "</label>" +
+          '<input id="ch-pin-cur" type="password" inputmode="numeric" value="' +
+          esc(state.ch.pin.current) + '" /></div>' +
+          '<div class="field"><label class="label" for="ch-pin-new">' +
+          esc(t("church.pin.new")) + "</label>" +
+          '<input id="ch-pin-new" type="password" inputmode="numeric" value="' +
+          esc(state.ch.pin.next) + '" /></div>' +
+          '<button class="btn btn-quiet" id="ch-pin-save">' + esc(t("church.save")) + "</button>" +
+          "</div>"
+        : "") +
+      "</div>";
+
+    app.appendChild(el(html));
+  }
+
+  function renderContactsCard() {
+    var c = state.ch;
+    var leaderNote = c.me.provinceId ? t("church.leader.none") : t("church.setProvince");
+
+    var html =
+      '<div class="card">' +
+      "<h3>" + esc(t("church.contacts")) + "</h3>" +
+      (c.me.role === "leader"
+        ? '<div class="contact"><div class="contact-label">' + esc(t("church.leader")) + "</div>" +
+          '<div class="contact-none">' + esc(t("church.you")) + "</div></div>"
+        : contactCard(t("church.leader"), c.leader, leaderNote)) +
+      (c.me.role === "director"
+        ? '<div class="contact"><div class="contact-label">' + esc(t("church.director")) + "</div>" +
+          '<div class="contact-none">' + esc(t("church.you")) + "</div></div>"
+        : contactCard(t("church.director"), c.director, t("dash.waiting"))) +
+      "</div>";
+
+    app.appendChild(el(html));
+  }
+
+  function renderRosterCard() {
+    var c = state.ch;
+    var all = c.rosterScope === "all";
+    var rows = c.roster || [];
+
+    // A director sees everyone; a leader sees their own province. Either way the
+    // headline figure is the one that bears on the province total in front of them.
+    var tally = (c.tally && c.tally[c.me.provinceId]) || null;
+    var scopeTally = tally;
+    if (all) {
+      scopeTally = { men: 0, women: 0, children: 0, total: 0, churches: 0 };
+      for (var k in c.tally || {}) {
+        if (!c.tally.hasOwnProperty(k)) continue;
+        scopeTally.men += c.tally[k].men;
+        scopeTally.women += c.tally[k].women;
+        scopeTally.children += c.tally[k].children;
+        scopeTally.total += c.tally[k].total;
+        scopeTally.churches += c.tally[k].churches;
+      }
+    }
+
+    var entry = state.byProvince[c.me.provinceId];
+    var reported = entry ? christiansOf(entry) : 0;
+
+    var head =
+      '<div class="card">' +
+      "<h3>" + esc(all ? t("roster.titleAll") : t("roster.title")) + "</h3>" +
+      '<p class="card-intro">' + esc(t("roster.intro")) + "</p>";
+
+    if (scopeTally && scopeTally.total > 0) {
+      head +=
+        '<div class="tally">' +
+        '<div class="tally-num">' + fmt(scopeTally.total) + "</div>" +
+        '<div class="tally-label">' + esc(t("roster.sum")) + " · " +
+        fmt(scopeTally.churches) + " " + esc(t("roster.churches")) + "</div>" +
+        '<div class="tally-split">' +
+        esc(t("church.men")) + " " + fmt(scopeTally.men) + " · " +
+        esc(t("church.women")) + " " + fmt(scopeTally.women) + " · " +
+        esc(t("church.children")) + " " + fmt(scopeTally.children) +
+        "</div>" +
+        (!all
+          ? '<div class="tally-compare">' + esc(t("roster.yourEstimate")) + ": <strong>" +
+            (reported ? fmt(reported) : "—") + "</strong></div>" +
+            '<button class="btn btn-quiet" data-use-tally="' + scopeTally.total + '">' +
+            esc(t("roster.use")) + "</button>"
+          : "") +
+        "</div>";
+    }
+
+    if (!rows.length) {
+      head += '<div class="field-note">' + esc(t("roster.none")) + "</div>";
+    } else {
+      head +=
+        '<div class="roster">' +
+        rows
+          .map(function (r) {
+            var prov = provinceById(r.provinceId);
+            var where = prov ? provinceName(prov) : t("roster.noProvince");
+            var figures = r.congregationTotal
+              ? fmt(r.congregation.men) + " / " + fmt(r.congregation.women) + " / " +
+                fmt(r.congregation.children)
+              : esc(t("roster.noNumbers"));
+            return (
+              '<div class="roster-row">' +
+              '<div class="roster-main">' +
+              '<div class="roster-name">' + esc(r.name) +
+              (r.role !== "pastor"
+                ? ' <span class="role-badge role-' + esc(r.role) + '">' +
+                  esc(t("role." + r.role)) + "</span>"
+                : "") +
+              "</div>" +
+              '<div class="roster-sub">' +
+              (r.churchName ? esc(r.churchName) + " · " : "") +
+              (r.denomination ? esc(r.denomination) + " · " : "") +
+              (all ? esc(where) + " · " : "") +
+              '<a href="tel:+' + esc(r.phone) + '">' + esc(r.phoneDisplay) + "</a>" +
+              "</div>" +
+              (r.villages && r.villages.length
+                ? '<div class="roster-sub">' + fmt(r.villages.length) + " " +
+                  esc(t(r.villages.length === 1 ? "roster.villageServed" : "roster.villagesServed")) +
+                  "</div>"
+                : "") +
+              (all && r.role === "pastor" && r.provinceId
+                ? '<button class="btn-link" data-make-leader="' + esc(r.phone) + '">' +
+                  esc(t("roster.makeLeader")) + "</button>"
+                : "") +
+              "</div>" +
+              '<div class="roster-figures">' +
+              '<div class="roster-total num">' +
+              (r.congregationTotal ? fmt(r.congregationTotal) : "—") + "</div>" +
+              '<div class="roster-split">' + figures + "</div>" +
+              "</div>" +
+              "</div>"
+            );
+          })
+          .join("") +
+        "</div>";
+    }
+
+    head += "</div>";
+    app.appendChild(el(head));
+  }
+
+  function renderChurch() {
+    if (!state.ch.token) return renderAuth();
+
+    if (state.ch.loading || !state.ch.me) {
+      app.appendChild(el('<div class="loading">…</div>'));
+      return;
+    }
+
+    renderProfileCard();
+    renderContactsCard();
+    if (isLeader()) renderRosterCard();
+  }
+
   // ---------- render ----------
 
   function render() {
@@ -881,6 +1624,7 @@
     document.getElementById("tab-dashboard").textContent = t("nav.dashboard");
     document.getElementById("tab-submit").textContent = t("nav.submit");
     document.getElementById("tab-registry").textContent = t("nav.registry");
+    document.getElementById("tab-church").textContent = t("nav.church");
     document.getElementById("tab-goal").textContent = t("nav.goal");
     document.getElementById("brand-title").textContent = t("app.title");
     document.getElementById("brand-sub").textContent = t("app.subtitle");
@@ -896,6 +1640,7 @@
 
     if (state.view === "submit") return renderSubmit();
     if (state.view === "registry") return renderRegistry();
+    if (state.view === "church") return renderChurch();
 
     if (state.loading) {
       app.appendChild(el('<div class="loading">…</div>'));
@@ -911,10 +1656,21 @@
     state.view = view;
     if (view === "submit") state.sent = false;
     state.formError = "";
+    if (view === "church") {
+      state.ch.error = "";
+      state.ch.notice = "";
+    }
     render();
     // Always re-read on the way in: another province may have reported since
     // this page was opened.
     if (view === "dashboard" || view === "goal" || view === "registry") load(true);
+    if (view === "church" && state.ch.token) {
+      loadMe(Boolean(state.ch.me));
+      // The roster compares congregations against the province total, so that
+      // total has to be current too.
+      load(true);
+    }
+    if (view === "church" && state.ch.form.provinceId) loadChurchTree(state.ch.form.provinceId);
     window.scrollTo(0, 0);
   }
 
@@ -936,7 +1692,23 @@
   });
 
   app.addEventListener("change", function (e) {
-    if (e.target.id === "f-province") onProvinceChange();
+    if (e.target.id === "f-province") return onProvinceChange();
+    if (e.target.id === "a-province") {
+      state.ch.auth.provinceId = e.target.value;
+      return;
+    }
+    if (e.target.id === "ch-province") {
+      state.ch.form.provinceId = e.target.value;
+      // Villages belong to a province; keeping the old province's picks after a
+      // move would quietly attribute a church to the wrong place.
+      state.ch.villages = [];
+      state.ch.vilFilter = "";
+      state.ch.tree = null;
+      state.ch.treeFor = "";
+      render();
+      loadChurchTree(state.ch.form.provinceId);
+      return;
+    }
   });
 
   app.addEventListener("input", function (e) {
@@ -947,6 +1719,32 @@
     }
     if (e.target.id === "reg-pass") {
       regPass = e.target.value;
+      return;
+    }
+    if (e.target.id === "ch-vil-search") {
+      state.ch.vilFilter = e.target.value;
+      refreshChVil();
+      return;
+    }
+    if (CH_NUM_FIELD[e.target.id]) {
+      state.ch.form[CH_NUM_FIELD[e.target.id]] = e.target.value;
+      refreshChTotal();
+      return;
+    }
+    if (CH_FIELD[e.target.id]) {
+      state.ch.form[CH_FIELD[e.target.id]] = e.target.value;
+      return;
+    }
+    if (AUTH_FIELD[e.target.id]) {
+      state.ch.auth[AUTH_FIELD[e.target.id]] = e.target.value;
+      return;
+    }
+    if (e.target.id === "ch-pin-cur") {
+      state.ch.pin.current = e.target.value;
+      return;
+    }
+    if (e.target.id === "ch-pin-new") {
+      state.ch.pin.next = e.target.value;
       return;
     }
     syncField(e);
@@ -985,6 +1783,62 @@
     var vil = e.target.closest("[data-vil]");
     if (vil) return toggleVillage(vil.getAttribute("data-vil"));
 
+    var vilAdd = e.target.closest("[data-vil-add]");
+    if (vilAdd) {
+      state.ch.villages.push({
+        code: vilAdd.getAttribute("data-vil-add"),
+        name: vilAdd.getAttribute("data-vil-name"),
+        nameKhmer: vilAdd.getAttribute("data-vil-km"),
+        communeName: vilAdd.getAttribute("data-vil-commune"),
+      });
+      state.ch.vilFilter = "";
+      var searchBox = document.getElementById("ch-vil-search");
+      if (searchBox) searchBox.value = "";
+      refreshChVil();
+      return;
+    }
+
+    var vilDel = e.target.closest("[data-vil-del]");
+    if (vilDel) {
+      var gone = vilDel.getAttribute("data-vil-del");
+      state.ch.villages = state.ch.villages.filter(function (v) {
+        return v.code !== gone;
+      });
+      refreshChVil();
+      return;
+    }
+
+    if (e.target.closest("#a-go")) return authSubmit();
+    if (e.target.closest("#a-mode")) {
+      state.ch.mode = state.ch.mode === "signup" ? "signin" : "signup";
+      state.ch.error = "";
+      render();
+      return;
+    }
+    if (e.target.closest("#ch-save")) return saveProfile();
+    if (e.target.closest("#ch-signout")) return signOut();
+    if (e.target.closest("#ch-pin-toggle")) {
+      state.ch.pinOpen = !state.ch.pinOpen;
+      state.ch.error = "";
+      render();
+      return;
+    }
+    if (e.target.closest("#ch-pin-save")) return changePin();
+
+    var makeLeader = e.target.closest("[data-make-leader]");
+    if (makeLeader) return setRole(makeLeader.getAttribute("data-make-leader"), "leader");
+
+    // Carry the roster's figure straight into the report rather than asking a
+    // leader to copy a six-digit number across two screens.
+    var useTally = e.target.closest("[data-use-tally]");
+    if (useTally) {
+      state.form.provinceId = state.ch.me.provinceId;
+      state.form.christians = useTally.getAttribute("data-use-tally");
+      state.form.name = state.ch.me.name;
+      go("submit");
+      return;
+    }
+
     if (e.target.closest("#f-submit")) return submit();
     if (e.target.closest("[data-again]")) return go("submit");
     var goBtn = e.target.closest("[data-go]");
@@ -994,5 +1848,9 @@
   // ---------- boot ----------
 
   window.I18N.setLang(window.I18N.getLang());
+  try {
+    state.ch.token = localStorage.getItem(TOKEN_KEY) || "";
+  } catch (e) {}
+  if (state.ch.token) loadMe(true);
   load();
 })();

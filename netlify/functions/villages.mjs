@@ -1,14 +1,20 @@
 import { getStore } from "@netlify/blobs";
+import { currentUser, joinCode } from "../shared/auth.mjs";
 
 const STORE_NAME = "cambodia-tracker";
-const DEFAULT_PASSCODE = "ywam2033";
 
 function store() {
   return getStore(STORE_NAME);
 }
 
-function getPasscode() {
-  return Netlify.env.get("ENTRY_PASSCODE") || DEFAULT_PASSCODE;
+// A signed-in account or the shared code — see the same note in entries.mjs.
+// Any signed-in account may tick villages: recording that a village has a church
+// is local knowledge every pastor has, unlike the province total.
+async function authorize(s, req, body) {
+  const me = await currentUser(s, req);
+  if (me) return { ok: true, by: me };
+  if (body.passcode === joinCode()) return { ok: true, by: null };
+  return { ok: false };
 }
 
 async function handleGet(s, req) {
@@ -43,9 +49,11 @@ async function handlePost(s, req) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  if (body.passcode !== getPasscode()) {
+  const auth = await authorize(s, req, body);
+  if (!auth.ok) {
     return Response.json({ error: "Incorrect team passcode." }, { status: 401 });
   }
+  const updatedBy = (auth.by?.name || String(body.updatedBy || "")).slice(0, 200);
 
   const provinceId = String(body.provinceId || "").trim();
   if (!provinceId) {
@@ -68,7 +76,7 @@ async function handlePost(s, req) {
       statuses[code] = {
         hasChurch: Boolean(e.hasChurch),
         note: String(e.note || "").slice(0, 300),
-        updatedBy: String(body.updatedBy || "").slice(0, 200),
+        updatedBy: updatedBy,
         updatedAt: new Date().toISOString(),
       };
       written++;
@@ -91,7 +99,7 @@ async function handlePost(s, req) {
     statuses[villageCode] = {
       hasChurch,
       note,
-      updatedBy: String(body.updatedBy || "").slice(0, 200),
+      updatedBy: updatedBy,
       updatedAt: new Date().toISOString(),
     };
   }
@@ -100,7 +108,7 @@ async function handlePost(s, req) {
   return Response.json({ ok: true, status: statuses[villageCode] || null });
 }
 
-export default async (req, context) => {
+export default async (req) => {
   const s = store();
   if (req.method === "GET") return handleGet(s, req);
   if (req.method === "POST") return handlePost(s, req);

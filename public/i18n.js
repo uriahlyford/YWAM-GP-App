@@ -17,6 +17,7 @@
     "nav.submit": { en: "Submit", km: "ដាក់ស្នើ" },
     "nav.registry": { en: "Villages", km: "ភូមិ" },
     "nav.goal": { en: "2033", km: "២០៣៣" },
+    "nav.church": { en: "My Church", km: "ក្រុមជំនុំរបស់ខ្ញុំ" },
 
     // Dashboard
     "dash.total": { en: "Christians", km: "គ្រិស្តបរិស័ទ" },
@@ -56,6 +57,7 @@
     "submit.name.placeholder": { en: "e.g. Pastor Sok Dara", km: "ឧ. គ្រូគង្វាល សុខ ដារា" },
     "submit.passcode": { en: "Team passcode", km: "លេខសម្ងាត់ក្រុម" },
     "submit.passcode.placeholder": { en: "From your coordinator", km: "ពីអ្នកសម្របសម្រួលរបស់អ្នក" },
+    "submit.as": { en: "Reporting as", km: "រាយការណ៍ក្នុងនាម" },
     "submit.button": { en: "Send", km: "ផ្ញើ" },
     "submit.sending": { en: "Sending…", km: "កំពុងផ្ញើ…" },
     "submit.thanks": { en: "Thank you — saved.", km: "អរគុណ — បានរក្សាទុក។" },
@@ -119,6 +121,101 @@
     "err.confidence": { en: "Choose how sure you are.", km: "សូមជ្រើសរើសកម្រិតប្រាកដរបស់អ្នក។" },
     "err.passcode": { en: "Enter the team passcode.", km: "សូមបញ្ចូលលេខសម្ងាត់ក្រុម។" },
     "err.generic": { en: "Couldn't save. Check your connection.", km: "មិនអាចរក្សាទុកបានទេ។ សូមពិនិត្យការតភ្ជាប់។" },
+
+
+    // ---------- Accounts ----------
+    "auth.signin.title": { en: "Sign in", km: "ចូលប្រើ" },
+    "auth.signup.title": { en: "Create an account", km: "បង្កើតគណនី" },
+    "auth.intro": {
+      en: "Sign in with your phone number so your church is on the map and your provincial leader can reach you.",
+      km: "សូមចូលប្រើដោយប្រើលេខទូរស័ព្ទរបស់អ្នក ដើម្បីឱ្យក្រុមជំនុំរបស់អ្នកមានក្នុងបញ្ជី និងឱ្យអ្នកដឹកនាំខេត្តអាចទាក់ទងអ្នកបាន។",
+    },
+    "auth.phone": { en: "Phone number", km: "លេខទូរស័ព្ទ" },
+    "auth.phone.placeholder": { en: "012 345 678", km: "០១២ ៣៤៥ ៦៧៨" },
+    "auth.pin": { en: "PIN", km: "លេខសម្ងាត់ PIN" },
+    "auth.pin.hint": { en: "4 to 8 numbers you'll remember", km: "លេខ ៤ ដល់ ៨ តួដែលអ្នកចងចាំបាន" },
+    "auth.pin.confirm": { en: "PIN again", km: "បញ្ជាក់លេខសម្ងាត់ PIN ម្តងទៀត" },
+    "auth.code": { en: "Team code", km: "កូដក្រុម" },
+    "auth.code.hint": { en: "From your coordinator", km: "ពីអ្នកសម្របសម្រួលរបស់អ្នក" },
+    "auth.signin.button": { en: "Sign in", km: "ចូលប្រើ" },
+    "auth.signup.button": { en: "Create account", km: "បង្កើតគណនី" },
+    "auth.toSignup": { en: "No account yet? Create one", km: "មិនទាន់មានគណនី? សូមបង្កើតថ្មី" },
+    "auth.toSignin": { en: "Already have an account? Sign in", km: "មានគណនីរួចហើយ? សូមចូលប្រើ" },
+    "auth.signout": { en: "Sign out", km: "ចេញពីគណនី" },
+    "auth.working": { en: "Please wait…", km: "សូមរង់ចាំ…" },
+
+    "err.pinMatch": { en: "The two PINs don't match.", km: "លេខសម្ងាត់ PIN ទាំងពីរមិនដូចគ្នាទេ។" },
+    "err.pin": { en: "Choose a PIN of 4 to 8 numbers.", km: "សូមជ្រើសរើសលេខសម្ងាត់ PIN ៤ ដល់ ៨ តួ។" },
+    "err.phone": { en: "Enter your phone number.", km: "សូមបញ្ចូលលេខទូរស័ព្ទរបស់អ្នក។" },
+    "err.name": { en: "Enter your name.", km: "សូមបញ្ចូលឈ្មោះរបស់អ្នក។" },
+
+    // ---------- My Church ----------
+    "church.profile": { en: "Your church", km: "ក្រុមជំនុំរបស់អ្នក" },
+    "church.churchName": { en: "Church name", km: "ឈ្មោះក្រុមជំនុំ" },
+    "church.churchName.placeholder": { en: "e.g. Grace Church, Chhuk", km: "ឧ. ក្រុមជំនុំព្រះគុណ ជ្រៃ" },
+    "church.denomination": { en: "Denomination", km: "និកាយ" },
+    "church.denomination.placeholder": { en: "e.g. Cambodian Evangelical Church", km: "ឧ. គ្រិស្តសាសនាចក្រផ្សាយដំណឹងល្អកម្ពុជា" },
+    "church.congregation": { en: "Congregation on a Sunday", km: "សមាជិកក្រុមជំនុំនៅថ្ងៃអាទិត្យ" },
+    "church.congregation.hint": {
+      en: "Count the people who come, not the members on paper.",
+      km: "សូមរាប់មនុស្សដែលមកចូលរួមពិតប្រាកដ មិនមែនសមាជិកតាមឯកសារទេ។",
+    },
+    "church.men": { en: "Men", km: "បុរស" },
+    "church.women": { en: "Women", km: "ស្ត្រី" },
+    "church.children": { en: "Children", km: "កុមារ" },
+    "church.total": { en: "Total", km: "សរុប" },
+    "church.villages": { en: "Villages you serve", km: "ភូមិដែលអ្នកបម្រើ" },
+    "church.villages.search": { en: "Search a village to add", km: "ស្វែងរកភូមិដើម្បីបញ្ចូល" },
+    "church.villages.none": { en: "No villages added yet.", km: "មិនទាន់បានបញ្ចូលភូមិនៅឡើយ។" },
+    "church.villages.pickProvince": { en: "Choose your province first.", km: "សូមជ្រើសរើសខេត្តរបស់អ្នកជាមុនសិន។" },
+    "church.villages.remove": { en: "Remove", km: "លុប" },
+    "church.save": { en: "Save", km: "រក្សាទុក" },
+    "church.saving": { en: "Saving…", km: "កំពុងរក្សាទុក…" },
+    "church.saved": { en: "Saved.", km: "បានរក្សាទុក។" },
+
+    "church.contacts": { en: "Who to call", km: "អ្នកដែលអាចទាក់ទង" },
+    "church.leader": { en: "Your provincial church leader", km: "អ្នកដឹកនាំក្រុមជំនុំខេត្តរបស់អ្នក" },
+    "church.leader.none": {
+      en: "No provincial leader named for your province yet.",
+      km: "មិនទាន់មានការតែងតាំងអ្នកដឹកនាំសម្រាប់ខេត្តរបស់អ្នកនៅឡើយ។",
+    },
+    "church.director": { en: "Church committee director", km: "នាយកគណៈកម្មការក្រុមជំនុំ" },
+    "church.call": { en: "Call", km: "ហៅទូរស័ព្ទ" },
+    "church.you": { en: "That's you", km: "នោះជាអ្នក" },
+    "church.setProvince": {
+      en: "Choose your province and save, and your provincial leader will show here.",
+      km: "សូមជ្រើសរើសខេត្តរបស់អ្នក ហើយរក្សាទុក បន្ទាប់មកអ្នកដឹកនាំខេត្តនឹងបង្ហាញនៅទីនេះ។",
+    },
+
+    "church.pin.change": { en: "Change PIN", km: "ប្តូរលេខសម្ងាត់ PIN" },
+    "church.pin.current": { en: "Current PIN", km: "លេខសម្ងាត់ PIN បច្ចុប្បន្ន" },
+    "church.pin.new": { en: "New PIN", km: "លេខសម្ងាត់ PIN ថ្មី" },
+    "church.pin.changed": { en: "PIN changed.", km: "បានប្តូរលេខសម្ងាត់ PIN ។" },
+
+    "role.pastor": { en: "Pastor", km: "គ្រូគង្វាល" },
+    "role.leader": { en: "Provincial leader", km: "អ្នកដឹកនាំខេត្ត" },
+    "role.director": { en: "Committee director", km: "នាយកគណៈកម្មការ" },
+
+    // ---------- Leader roster ----------
+    "roster.title": { en: "Churches in your province", km: "ក្រុមជំនុំក្នុងខេត្តរបស់អ្នក" },
+    "roster.titleAll": { en: "Every church signed up", km: "ក្រុមជំនុំទាំងអស់ដែលបានចុះឈ្មោះ" },
+    "roster.intro": {
+      en: "What the congregations add up to. Use it to sharpen your province total — it is a floor, not the whole province.",
+      km: "ចំនួនសមាជិកក្រុមជំនុំបូកបញ្ចូលគ្នា។ សូមប្រើវាដើម្បីកែសម្រួលចំនួនសរុបនៃខេត្តរបស់អ្នក — វាជាចំនួនអប្បបរមា មិនមែនទាំងខេត្តទេ។",
+    },
+    "roster.sum": { en: "Congregations add up to", km: "សមាជិកក្រុមជំនុំបូកបញ្ចូលគ្នាបាន" },
+    "roster.churches": { en: "churches reporting", km: "ក្រុមជំនុំបានរាយការណ៍" },
+    "roster.yourEstimate": { en: "Your province total", km: "ចំនួនសរុបនៃខេត្តរបស់អ្នក" },
+    "roster.use": { en: "Use this in Submit →", km: "ប្រើលេខនេះក្នុងការដាក់ស្នើ →" },
+    "roster.none": {
+      en: "No pastors in your province have signed up yet. Share the team code.",
+      km: "មិនទាន់មានគ្រូគង្វាលក្នុងខេត្តរបស់អ្នកចុះឈ្មោះនៅឡើយ។ សូមចែករំលែកកូដក្រុម។",
+    },
+    "roster.noNumbers": { en: "no numbers yet", km: "មិនទាន់មានលេខ" },
+    "roster.makeLeader": { en: "Make provincial leader", km: "តែងតាំងជាអ្នកដឹកនាំខេត្ត" },
+    "roster.noProvince": { en: "no province set", km: "មិនបានកំណត់ខេត្ត" },
+    "roster.villagesServed": { en: "villages", km: "ភូមិ" },
+    "roster.villageServed": { en: "village", km: "ភូមិ" },
 
     "footer": {
       en: "Population: 2024 Inter-Censal Population Survey (NIS). Villages: official NCDD gazetteer.",

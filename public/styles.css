@@ -114,6 +114,11 @@ body.km {
   color: #fff;
 }
 
+/* Five tabs into two columns leaves one orphan on the last row. The 2033 view is
+   the one that reads as a footnote to the others, so it takes the full width
+   rather than sitting half-width beside empty space. */
+.tab-secondary { grid-column: 1 / -1; }
+
 /* ---------- layout ---------- */
 .app {
   max-width: 760px;
@@ -477,10 +482,218 @@ input.big {
 @media (min-width: 620px) {
   .conf-grid { grid-template-columns: repeat(10, 1fr); }
   .headline-num { font-size: 64px; }
-  .tabs { grid-template-columns: 1fr 1fr 1fr 0.6fr; }
+  .tabs { grid-template-columns: 1fr 1fr 1fr 1fr 0.6fr; }
+  .tab-secondary { grid-column: auto; }
   .prov-grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
+}
+
+/* ---------- My Church ---------- */
+
+.card-intro {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.notice {
+  background: var(--brand-soft);
+  color: var(--brand);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.me-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.me-name { font-weight: 700; font-size: 17px; }
+.me-sub { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+.role-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--line);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.role-badge.role-leader,
+.role-badge.role-director { background: var(--brand-soft); color: var(--brand); }
+
+/* Men / women / children, side by side — the split is the point, so it is never
+   collapsed into one box on a narrow screen. */
+.cong-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.cong { display: flex; flex-direction: column; gap: 5px; }
+.cong > span { font-size: 13px; color: var(--muted); }
+.cong input { width: 100%; }
+
+.cong-total {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.cong-total strong { color: var(--ink); font-size: 18px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  border-radius: 999px;
+  padding: 5px 6px 5px 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.chip-x {
+  border: 0;
+  background: rgba(169, 80, 47, 0.16);
+  color: inherit;
+  border-radius: 999px;
+  width: 22px;
+  height: 22px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pick-results { margin-top: 8px; }
+.pick-results:empty { display: none; }
+.pick-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  padding: 12px 4px;
+  cursor: pointer;
+}
+.pick-row:hover { background: var(--cream); }
+.pick-where { color: var(--muted); font-size: 13px; }
+.pick-empty { color: var(--muted); font-size: 14px; padding: 12px 4px; }
+
+.contact {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.contact:last-child { border-bottom: 0; padding-bottom: 0; }
+.contact-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.contact-name { font-weight: 700; font-size: 17px; }
+.contact-sub { color: var(--muted); font-size: 14px; }
+.contact-none { color: var(--muted); font-size: 14px; }
+
+/* A phone number a pastor can actually press, not a line of text to copy out. */
+.contact-call {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  text-decoration: none;
+  font-weight: 700;
+}
+.contact-num { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.contact-verb { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.tally {
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 18px;
+}
+.tally-num { font-size: 34px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tally-label { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.tally-split { color: var(--muted); font-size: 13px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.tally-compare {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--muted);
+}
+.tally-compare strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.tally .btn { margin-top: 12px; }
+
+.btn-quiet {
+  background: var(--card);
+  color: var(--brand);
+  border: 1px solid var(--brand);
+}
+
+.roster-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.roster-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.roster-main { min-width: 0; }
+.roster-name { font-weight: 700; }
+.roster-sub { color: var(--muted); font-size: 13px; }
+.roster-sub a { color: var(--muted); }
+.roster-figures { text-align: right; white-space: nowrap; }
+.roster-total { font-size: 20px; font-weight: 700; }
+.roster-split { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.pin-box {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.card-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+}
+.card-foot .btn-link { margin: 0; }
+
+.signed-as { margin-bottom: 18px; }
+
+@media (max-width: 380px) {
+  .cong-grid { gap: 6px; }
+  .cong > span { font-size: 12px; }
 }

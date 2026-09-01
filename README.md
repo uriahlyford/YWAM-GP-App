@@ -4,11 +4,12 @@ One church leader per province submits two figures — roughly how many Christia
 they think are in their province, and how many of its villages have a church —
 plus **how sure they are**, 1 to 10.
 
-Four screens:
+Five screens:
 
 - **Total** — the running number, villages reached, and which provinces have reported
 - **Submit** — province, the two figures, confidence, your name, team passcode
 - **Villages** — the full registry: mark village by village which ones have a church
+- **My Church** — sign in, keep your church's profile, and see who to call
 - **2033** — secondary: how far the reported provinces are from the 10% goal
 
 Available in English and Khmer.
@@ -48,13 +49,95 @@ estimate. No research priors are filled in, because a number on screen anchors
 the next leader's guess. The total is honest about being partial: it always says
 how many of the 25 provinces it's built from.
 
+## Accounts
+
+Sign-in is **phone number plus a PIN the pastor chooses** — not email. Provincial
+pastors have phones, sometimes shared ones, and often no working email address.
+A number is written locally as `012 345 678` and internationally as `+855 12 345
+678`; both are stored as one canonical form, so signing up one way and signing in
+the other way reaches the same account.
+
+Anyone with the team code can create an account. There is no email confirmation,
+no SMS gateway and nothing for a coordinator to approve — the code is the gate.
+
+### Three roles
+
+| | Can do |
+|---|---|
+| **Pastor** | Keep their own church profile. See their provincial leader's number and the director's number. Tick villages in the registry. |
+| **Provincial leader** | All of the above, plus the roster of every church in their province with congregation figures, and sending their province's total. |
+| **Committee director** | The full roster across all 25 provinces, naming each province's leader, and reporting for any province. |
+
+A pastor becomes a **provincial leader** when the director names them, from the
+roster on the My Church screen. One leader per province: naming a new one demotes
+the old one, because the province total is a single number and two people
+authorised to overwrite it would quietly overwrite each other.
+
+The **director** is whoever holds the number in the `DIRECTOR_PHONE` environment
+variable, set in the Netlify dashboard. That role is deliberately not handed out
+from inside the app — if it were, whoever held it could pass on their own
+authority and there would be no way to take it back. Setting `DIRECTOR_PHONE`
+after that person has already signed up promotes them on their next sign-in.
+
+### Congregations feed the province total
+
+A pastor records their Sunday congregation as **men, women and children**
+separately. Their provincial leader sees those figures summed across every church
+in the province, next to the province total they last reported, with a button that
+carries the sum into the Submit form.
+
+The sum is a floor, not the province — it only counts churches whose pastor has
+signed up. The screen says so rather than presenting it as the answer.
+
+### What each person is allowed to see
+
+Decided on the server, not in the browser. A pastor's response contains their own
+record, their provincial leader's contact card and the director's contact card —
+the other pastors in their province are not in the payload at all, so the app
+cannot leak a contact list it was never sent. Contact cards carry a name, a church
+and a number to ring, never congregation figures. PIN hashes never leave the
+server in any response.
+
+PINs are salted and hashed with scrypt. Eight wrong PINs locks an account for
+fifteen minutes, which is the only thing standing between a four-digit PIN and a
+brute force. Sessions are HMAC-signed tokens valid for 60 days; the role is read
+from storage on every request rather than trusted from the token, so a promotion
+or demotion takes effect on the next request instead of the next sign-in.
+
+## Tests
+
+```
+npm test
+```
+
+Runs the auth primitives (phone forms, PIN hashing, token forgery, lockout, and
+that no view leaks PIN material) and then an API suite against the real function
+handlers, mounted on a plain Node server with an in-memory stand-in for Netlify
+Blobs — so the tests exercise the code that gets deployed rather than a
+reimplementation of it. The suite covers the permission model directly: that a
+pastor cannot promote themselves, that a leader cannot report for another
+province, that a demoted leader loses the roster, and that one province ends up
+with exactly one leader.
+
 ## Data entry access
 
-Submitting requires a shared team passcode, set via the `ENTRY_PASSCODE`
-environment variable in the Netlify site settings. It falls back to `vision2033`
-if unset. Setting `ENTRY_PASSCODE` in Netlify overrides the fallback and keeps
-the real passcode out of this public repository — prefer that to editing the
-default here. Viewing the total is open to anyone with the link.
+`ENTRY_PASSCODE` in the Netlify site settings is both the team code for creating
+an account and the older shared passcode for submitting without one. It falls
+back to `vision2033` if unset — set it in Netlify rather than editing the default
+here, so the real code stays out of this public repository.
+
+Both routes still work. A signed-in provincial leader submits with their session
+and is never shown a passcode field; the shared passcode continues to work for
+anyone who was given it before accounts existed. Viewing the total is open to
+anyone with the link.
+
+### Environment variables
+
+| | |
+|---|---|
+| `ENTRY_PASSCODE` | Team code for signing up, and the legacy shared passcode. |
+| `DIRECTOR_PHONE` | The committee director's number, in any format. **Must be set** or no account gets the director role. |
+| `AUTH_SECRET` | Optional. Session signing key. Left unset, one is generated on first use and kept in the blob store, so there is nothing to configure and nothing to lose. |
 
 ## Language
 
@@ -69,9 +152,12 @@ Province names come from the official NCDD gazetteer's Khmer spellings.
 
 - Static frontend in `public/` — vanilla JS, no framework, no build step, no CDN
   scripts, so it works on a patchy connection
-- Two Netlify Functions backed by [Netlify Blobs](https://docs.netlify.com/blobs/overview/):
+- Four Netlify Functions backed by [Netlify Blobs](https://docs.netlify.com/blobs/overview/):
   `entries.mjs` (`/api/entries`) for province reports, `villages.mjs`
-  (`/api/villages`) for registry ticks
+  (`/api/villages`) for registry ticks, `auth.mjs` (`/api/auth`) for sign-up and
+  sign-in, and `me.mjs` (`/api/me`) for the My Church screen
+- `netlify/shared/auth.mjs` — phone normalization, PIN hashing, session tokens
+  and the response shaping that decides what each role is allowed to see
 - `public/provinces.js` — the 25 provinces with Khmer names and reference populations
 - `public/data/villages/*.json` — the NCDD gazetteer, one file per province,
   district → commune → village with Khmer and Latin names

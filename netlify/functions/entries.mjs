@@ -1,7 +1,7 @@
 import { getStore } from "@netlify/blobs";
+import { currentUser, joinCode } from "../shared/auth.mjs";
 
 const STORE_NAME = "cambodia-tracker";
-const DEFAULT_PASSCODE = "vision2033";
 const MAX_HISTORY_PER_PROVINCE = 200;
 
 // Cambodia's population is ~17.4M; anything above this is a typo, not a report.
@@ -43,8 +43,26 @@ function store() {
   return getStore(STORE_NAME);
 }
 
-function getPasscode() {
-  return Netlify.env.get("ENTRY_PASSCODE") || DEFAULT_PASSCODE;
+// Two ways in, because the app grew an accounts screen after the passcode was
+// already in the field. A signed-in provincial leader submits with their session
+// and never sees a passcode prompt; the shared code still works for anyone who was
+// given it before accounts existed.
+async function authorize(s, req, body, provinceId) {
+  const me = await currentUser(s, req);
+  if (me) {
+    if (me.role === "director") return { ok: true, by: me };
+    if (me.role === "leader" && me.provinceId === provinceId) return { ok: true, by: me };
+    if (me.role === "leader") {
+      return { ok: false, error: "You can only report for your own province.", status: 403 };
+    }
+    return {
+      ok: false,
+      error: "Only your provincial leader can send the province total.",
+      status: 403,
+    };
+  }
+  if (body.passcode === joinCode()) return { ok: true, by: null };
+  return { ok: false, error: "Incorrect team passcode.", status: 401 };
 }
 
 async function handleGet(s) {
@@ -70,14 +88,15 @@ async function handlePost(s, req) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  if (body.passcode !== getPasscode()) {
-    return Response.json({ error: "Incorrect team passcode." }, { status: 401 });
-  }
-
   const provinceId = String(body.provinceId || "").trim();
   const provinceName = String(body.provinceName || "").trim();
   if (!provinceId || !provinceName) {
     return Response.json({ error: "Missing province." }, { status: 400 });
+  }
+
+  const auth = await authorize(s, req, body, provinceId);
+  if (!auth.ok) {
+    return Response.json({ error: auth.error }, { status: auth.status });
   }
 
   const christians = Number(body.christians);
@@ -106,7 +125,10 @@ async function handlePost(s, req) {
     christians: Math.round(christians),
     villagesWithChurches: Math.round(villagesWithChurches),
     confidence,
-    enteredBy: String(body.enteredBy || "").slice(0, 200),
+    enteredBy: (auth.by?.name || String(body.enteredBy || "")).slice(0, 200),
+    // Recorded when the report came from an account, so a figure can be traced
+    // back to a person rather than to whoever was holding the shared passcode.
+    enteredByPhone: auth.by?.phone || "",
     date: new Date().toISOString().slice(0, 10),
     submittedAt: new Date().toISOString(),
   };
