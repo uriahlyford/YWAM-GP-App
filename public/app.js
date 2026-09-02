@@ -10,6 +10,7 @@
   var provinceName = window.I18N.provinceName;
   var PROVINCES = window.PROVINCES || [];
   var GOAL = window.GOAL || { targetPercent: 10, targetDate: "2033-01-01" };
+  var GATHERED = (window.GATHERED_2026 && window.GATHERED_2026.byProvince) || {};
   var PASSCODE_KEY = "vision2033.passcode";
   var TOKEN_KEY = "vision2033.token";
 
@@ -225,10 +226,104 @@
     return n;
   }
 
+  // The 2026 national committee roster's church-membership figure for a province, or null
+  // if that province's roll-up row was left blank in the source spreadsheet.
+  function gatheredOf(provinceId) {
+    var g = GATHERED[provinceId];
+    if (!g || g.members === null || g.members === undefined) return null;
+    return Number(g.members) || 0;
+  }
+
+  function gatheredTotals() {
+    var total = 0;
+    var count = 0;
+    PROVINCES.forEach(function (p) {
+      var m = gatheredOf(p.id);
+      if (m !== null) {
+        total += m;
+        count++;
+      }
+    });
+    return { total: total, count: count };
+  }
+
+  // ---------- estimated vs. gathered ----------
+  //
+  // The leader's own Submit estimate, next to the 2026 national committee roster's
+  // membership figure for the same province. Two independent counts, shown side by
+  // side rather than merged into one number — same principle as estimated vs.
+  // confirmed villages above.
+
+  function renderComparison() {
+    if (!Object.keys(GATHERED).length) return;
+
+    var rows = PROVINCES.map(function (p) {
+      var entry = state.byProvince[p.id];
+      return {
+        province: p,
+        estimated: entry ? christiansOf(entry) : null,
+        gathered: gatheredOf(p.id),
+      };
+    }).filter(function (r) {
+      return r.estimated !== null || r.gathered !== null;
+    });
+
+    if (!rows.length) return;
+
+    rows.sort(function (a, b) {
+      return (b.gathered || 0) - (a.gathered || 0);
+    });
+
+    var body =
+      '<div class="row row-head">' +
+      "<div>" + esc(t("table.province")) + "</div>" +
+      '<div style="text-align:right">' + esc(t("compare.estimated")) + "</div>" +
+      '<div style="text-align:right">' + esc(t("compare.gathered")) + "</div>" +
+      "</div>";
+
+    rows.forEach(function (r) {
+      var diff = r.estimated !== null && r.gathered !== null ? r.gathered - r.estimated : null;
+      body +=
+        '<div class="row">' +
+        '<div class="row-name">' + esc(provinceName(r.province)) +
+        (diff !== null
+          ? '<div class="row-by">' + (diff > 0 ? "+" : "") + fmt(diff) + " " + esc(t("compare.diff")) + "</div>"
+          : "") +
+        "</div>" +
+        '<div class="row-num num">' + (r.estimated !== null ? fmt(r.estimated) : "—") + "</div>" +
+        '<div class="row-num num">' + (r.gathered !== null ? fmt(r.gathered) : "—") + "</div>" +
+        "</div>";
+    });
+
+    var source = window.GATHERED_2026 && window.GATHERED_2026.source;
+    var sourceLabel = source && (window.I18N.getLang() === "km" ? source.labelKhmer || source.label : source.label);
+
+    app.appendChild(
+      el(
+        '<div class="card">' +
+          '<div class="reg-title">' + esc(t("compare.title")) + "</div>" +
+          '<div class="goal-scope" style="text-align:left;margin:6px 0 12px">' +
+          esc(t("compare.intro")) +
+          "</div>" +
+          '<div class="rows">' + body + "</div>" +
+          (sourceLabel
+            ? '<div class="goal-scope" style="margin-top:10px">' +
+              esc(t("compare.source")) + " " + esc(sourceLabel) +
+              "</div>"
+            : "") +
+          "</div>"
+      )
+    );
+  }
+
   // ---------- dashboard ----------
 
   function renderDashboard() {
     var s = totals();
+
+    // Independent of whether any province has self-reported yet, since the roster's
+    // figures come from a separate source entirely.
+    renderComparison();
 
     if (!s.reported.length) {
       app.appendChild(
@@ -269,6 +364,14 @@
             ? '<div class="headline-sub">' +
               '<strong class="num">' + fmt(confirmedTotal()) + "</strong> " +
               esc(t("reg.confirmed")) +
+              "</div>"
+            : "") +
+          // A third, independent count — the 2026 committee roster's own membership
+          // figures — shown but never added into the total above.
+          (gatheredTotals().count
+            ? '<div class="headline-sub">' +
+              '<strong class="num">' + fmt(gatheredTotals().total) + "</strong> " +
+              esc(t("dash.gatheredLine")) +
               "</div>"
             : "") +
           "</div>"

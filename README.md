@@ -25,6 +25,17 @@ The app carries two counts of villages with a church and never blends them:
 Both appear on the Total screen, labelled. Early on the confirmed number will be far
 lower — that gap is real information about coverage, not an error to be smoothed over.
 
+## A third count: gathered
+
+The Total screen also carries an **Estimated vs. gathered** table, imported once from a
+2026 national Christian committee roster spreadsheet — a province-by-province rollup of
+committee leaders and church membership (`public/data/gathered-2026.js`). It sits next
+to the leader's own Submit estimate for the same province, never averaged or merged into
+it: two independent counts, so a reader can see where they agree and where they don't.
+Provinces the roster left blank (Tboung Khmum) are omitted rather than shown as zero.
+Phnom Penh has no province committee and reports through five denominations instead — its
+row is their combined total.
+
 ## The village figure
 
 Leaders are never asked how many villages their province has — the app already
